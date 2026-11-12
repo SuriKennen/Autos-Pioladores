@@ -38,7 +38,7 @@ body{
 .screen.active{display:flex}
 
 /* ── LOBBY ── */
-#screen-lobby{gap:22px;padding:28px 20px;max-width:460px;width:100%}
+#screen-lobby{gap:22px;padding:28px 20px 28px 20px;max-width:460px;width:100%;justify-content:flex-start;overflow-y:auto;max-height:100vh}
 
 .game-title{
   font-size:clamp(1.8rem,6vw,2.8rem);
@@ -162,7 +162,7 @@ input[type=text]:focus{border-color:var(--yellow)}
 
 <!-- LOBBY -->
 <div id="screen-lobby" class="screen active">
-  <div><div class="game-title">AUTITOS<br>PIOLADORES</div><div class="game-sub">último en pie gana</div></div>
+  <div style="margin-top:-10px"><div class="game-title">AUTOS<br>PIOLADORES</div><div class="game-sub">último en pie gana</div></div>
 
   <div class="cfg"><span class="lbl">Tu nombre</span>
     <input type="text" id="iname" placeholder="Elegí un nombre..." maxlength="16"></div>
