@@ -162,7 +162,7 @@ input[type=text]:focus{border-color:var(--yellow)}
 
 <!-- LOBBY -->
 <div id="screen-lobby" class="screen active">
-  <div style="margin-top: 0px"><div class="game-title">AUTITOS<br>PIOLADORES</div><div class="game-sub">último en pie gana</div></div>
+  <div style="margin-top: 0px"><div class="game-title">AUTOS PIOLADORES</div><div class="game-sub">último en pie gana</div></div>
 
   <div class="cfg"><span class="lbl">Tu nombre</span>
     <input type="text" id="iname" placeholder="Elegí un nombre..." maxlength="16"></div>
@@ -817,13 +817,16 @@ function resolveCarCollision(a,carA,b,carB,bPid){
   }
 
   // Daño al otro (subir a Firebase solo si el daño es significativo)
-  const dmg=Math.min(Math.round(relSpeed*CFG.DMG_FACTOR),CFG.DMG_MA);
-  if(dmg>=CFG.DMG_MIN){
-    const curHp=(firebaseState.players?.[bPid]?.hp)||MAX_HP;
-    const newHp=Math.max(0,curHp-dmg);
+  const dmg = Math.min(Math.round(relSpeed * CFG.DMG_FACTOR), CFG.DMG_MAX);
+  if(dmg >= CFG.DMG_MIN){
+    const curHp = typeof remoteTargets[bPid]?.hp === 'number' ? remoteTargets[bPid].hp : MAX_HP;
+    const newHp = Math.max(0, curHp - dmg);
+    // actualizar local inmediatamente para que no aplique daño doble
+    remoteTargets[bPid].hp = newHp;
+    remoteTargets[bPid].alive = newHp > 0;
     update(ref(db),{
-      [`rooms/${roomCode}/players/${bPid}/hp`]:newHp,
-      [`rooms/${roomCode}/players/${bPid}/alive`]:newHp>0,
+      [`rooms/${roomCode}/players/${bPid}/hp`]: newHp,
+      [`rooms/${roomCode}/players/${bPid}/alive`]: newHp > 0,
     });
   }
 }
