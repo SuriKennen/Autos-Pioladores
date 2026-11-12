@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DERBY CRASH</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --asphalt: #1a1a1e;
+    --asphalt-mid: #22222a;
+    --asphalt-light: #2e2e3a;
+    --yellow: #f5c400;
+    --orange: #e85d04;
+    --red: #c1121f;
+    --white: #f0eff4;
+    --grey: #8d8d9a;
+    --green: #2dc653;
+  }
+
+  body {
+    background: var(--asphalt);
+    color: var(--white);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+  .screen.active { display: flex; }
+
+  /* ── LOBBY ── */
+  #screen-lobby {
+    gap: 28px;
+    padding: 32px 20px;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .game-title {
+    font-size: clamp(2.8rem, 10vw, 4.5rem);
+    font-weight: 900;
+    letter-spacing: -2px;
+    line-height: 1;
+    color: var(--yellow);
+    text-shadow: 4px 4px 0 var(--orange), 8px 8px 0 var(--red);
+  }
+
+  .game-subtitle {
+    font-size: 0.85rem;
+    color: var(--grey);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: -18px;
+  }
+
+  .section-label {
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    color: var(--grey);
+    text-transform: uppercase;
+    align-self: flex-start;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--asphalt-light);
+    border: 2px solid var(--asphalt-light);
+    border-radius: 6px;
+    color: var(--white);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input[type="text"]:focus { border-color: var(--yellow); }
+
+  /* Car picker */
+  .car-picker {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .car-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 10px;
+    background: var(--asphalt-light);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color .2s, transform .1s;
+    user-select: none;
+  }
+  .car-option:hover { border-color: var(--grey); transform: translateY(-2px); }
+  .car-option.selected { border-color: var(--yellow); background: var(--asphalt-mid); }
+  .car-option canvas { display: block; }
+  .car-option span { font-size: 0.75rem; color: var(--grey); font-weight: 700; letter-spacing: 1px; }
+
+  /* Color picker */
+  .color-picker {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .color-swatch {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform .15s, border-color .15s;
+  }
+  .color-swatch:hover { transform: scale(1.15); }
+  .color-swatch.selected { border-color: var(--white); transform: scale(1.2); }
+
+  /* Buttons */
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform .1s, opacity .2s;
+    text-transform: uppercase;
+  }
+  .btn:hover { transform: translateY(-2px); }
+  .btn:active { transform: translateY(0); }
+  .btn-primary { background: var(--yellow); color: var(--asphalt); }
+  .btn-secondary { background: var(--asphalt-light); color: var(--white); border: 2px solid var(--grey); }
+  .btn-danger { background: var(--red); color: var(--white); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  .divider {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--grey);
+    font-size: 0.8rem;
+  }
+  .divider::before, .divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--asphalt-light);
+  }
+
+  .join-row { display: flex; gap: 10px; width: 100%; }
+  .join-row input { flex: 1; }
+  .join-row .btn { width: auto; padding: 12px 20px; white-space: nowrap; }
+
+  /* ── WAITING ROOM ── */
+  #screen-waiting {
+    gap: 20px;
+    padding: 32px 20px;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .room-code-display {
+    background: var(--asphalt-light);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    width: 100%;
+  }
+  .room-code-display .label { font-size: 0.72rem; letter-spacing: 2px; color: var(--grey); text-transform: uppercase; }
+  .room-code-display .code { font-size: 2.8rem; font-weight: 900; letter-spacing: 8px; color: var(--yellow); margin: 8px 0 4px; }
+  .room-code-display .hint { font-size: 0.78rem; color: var(--grey); }
+
+  .players-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .player-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--asphalt-light);
+    border-radius: 8px;
+  }
+  .player-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .player-name { font-weight: 700; flex: 1; }
+  .player-badge { font-size: 0.7rem; color: var(--grey); letter-spacing: 1px; }
+  .player-host-badge { font-size: 0.7rem; color: var(--yellow); font-weight: 700; letter-spacing: 1px; }
+
+  .waiting-hint { font-size: 0.82rem; color: var(--grey); text-align: center; }
+
+  /* ── GAME CANVAS ── */
+  #screen-game {
+    position: fixed; inset: 0;
+    background: var(--asphalt);
+    justify-content: center;
+    align-items: center;
+  }
+
+  #gameCanvas {
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  .hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 16px;
+    pointer-events: none;
+  }
+
+  .hud-player {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 120px;
+  }
+
+  .hud-name {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .health-bar-bg {
+    height: 8px;
+    background: var(--asphalt-light);
+    border-radius: 4px;
+    overflow: hidden;
+    width: 120px;
+  }
+  .health-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width .2s;
+  }
+
+  .hud-me .health-bar-fill { background: var(--green); }
+  .hud-me { align-items: flex-start; }
+
+  /* ── OVERLAY MESSAGES ── */
+  #overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.75);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    z-index: 100;
+  }
+  #overlay.show { display: flex; }
+  #overlay .msg-title { font-size: clamp(2rem, 8vw, 3.5rem); font-weight: 900; color: var(--yellow); text-align: center; letter-spacing: -1px; }
+  #overlay .msg-sub { font-size: 1rem; color: var(--grey); text-align: center; }
+  #overlay .btn { max-width: 300px; }
+
+  /* ── CONTROLS HINT ── */
+  .controls-hint {
+    position: fixed;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.72rem;
+    color: var(--grey);
+    letter-spacing: 1px;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* mobile touch buttons */
+  #touch-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    gap: 0;
+    user-select: none;
+  }
+  .touch-btn {
+    width: 60px; height: 60px;
+    background: rgba(255,255,255,.12);
+    border: 2px solid rgba(255,255,255,.2);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .touch-dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 60px);
+    grid-template-rows: repeat(3, 60px);
+    gap: 4px;
+  }
+
+  @media (pointer: coarse) {
+    #touch-controls { display: block; }
+    .controls-hint { display: none; }
+  }
+
+  .config-block { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+
+  #status-msg { font-size: 0.82rem; color: var(--grey); text-align: center; min-height: 1.2em; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 1: LOBBY
+═══════════════════════════════════════════ -->
+<div id="screen-lobby" class="screen active">
+  <div style="text-align:center">
+    <div class="game-title">DERBY<br>CRASH</div>
+    <div class="game-subtitle">último en pie gana</div>
+  </div>
+
+  <div class="config-block">
+    <span class="section-label">Tu nombre</span>
+    <input type="text" id="input-name" placeholder="Elegí un nombre..." maxlength="16">
+  </div>
+
+  <div class="config-block">
+    <span class="section-label">Tipo de auto</span>
+    <div class="car-picker" id="car-picker"></div>
+  </div>
+
+  <div class="config-block">
+    <span class="section-label">Color</span>
+    <div class="color-picker" id="color-picker"></div>
+  </div>
+
+  <button class="btn btn-primary" id="btn-create">Crear sala</button>
+
+  <div class="divider">o unite a una sala</div>
+
+  <div class="join-row">
+    <input type="text" id="input-room-code" placeholder="Código de sala" maxlength="6" style="text-transform:uppercase; letter-spacing:4px;">
+    <button class="btn btn-secondary" id="btn-join">Unirme</button>
+  </div>
+
+  <div id="status-msg"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 2: WAITING ROOM
+═══════════════════════════════════════════ -->
+<div id="screen-waiting" class="screen">
+  <div class="room-code-display">
+    <div class="label">Código de sala</div>
+    <div class="code" id="display-room-code">------</div>
+    <div class="hint">Compartí este código con tus amigos</div>
+  </div>
+
+  <div style="width:100%">
+    <span class="section-label">Jugadores en sala</span>
+    <div class="players-list" id="players-list" style="margin-top:10px"></div>
+  </div>
+
+  <div class="waiting-hint" id="waiting-hint">Esperando al host para empezar...</div>
+
+  <button class="btn btn-primary" id="btn-start" style="display:none">¡Empezar partida!</button>
+  <button class="btn btn-secondary" id="btn-leave">Salir de la sala</button>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 3: GAME
+═══════════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+  <canvas id="gameCanvas"></canvas>
+  <div class="hud" id="hud"></div>
+  <div class="controls-hint">W A S D  o  ↑ ← ↓ →  para mover</div>
+
+  <div id="touch-controls">
+    <div class="touch-dpad">
+      <div></div>
+      <div class="touch-btn" id="tbtn-up">↑</div>
+      <div></div>
+      <div class="touch-btn" id="tbtn-left">←</div>
+      <div></div>
+      <div class="touch-btn" id="tbtn-right">→</div>
+      <div></div>
+      <div class="touch-btn" id="tbtn-down">↓</div>
+      <div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     OVERLAY (victoria / eliminado)
+═══════════════════════════════════════════ -->
+<div id="overlay">
+  <div class="msg-title" id="overlay-title">¡GANASTE!</div>
+  <div class="msg-sub" id="overlay-sub">Fuiste el último en pie</div>
+  <button class="btn btn-primary" id="btn-play-again">Jugar de nuevo</button>
+  <button class="btn btn-secondary" id="btn-back-lobby">Volver al lobby</button>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FIREBASE + LÓGICA
+═══════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getDatabase, ref, set, get, update, onValue, off, push, remove, onDisconnect, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ══════════════════════════════════════════════
+// 🔥 FIREBASE CONFIG — REEMPLAZÁ CON LA TUYA
+// ══════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBbtQ-xPpBP85U0T0UTKCZWugbk3j5CFKU",
+  authDomain: "autorpioladores.firebaseapp.com",
+  databaseURL: "https://autorpioladores-default-rtdb.firebaseio.com",
+  projectId: "autorpioladores",
+  storageBucket: "autorpioladores.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "REEMPLAZA"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ══════════════════════════════════════════════
+// CONSTANTES DEL JUEGO
+// ══════════════════════════════════════════════
+const TICK_RATE  = 50; // ms entre updates del cliente host
+const MAX_HP     = 100;
+const ARENA_W    = 900;
+const ARENA_H    = 650;
+const CARS = [
+  { id: 'muscle',  label: 'MUSCLE',  w: 36, h: 56, mass: 1.5 },
+  { id: 'compact', label: 'COMPACT', w: 28, h: 46, mass: 1.0 },
+  { id: 'truck',   label: 'TRUCK',   w: 40, h: 64, mass: 2.2 },
+];
+const COLORS = [
+  '#e63946','#f4a261','#f5c400','#2dc653',
+  '#4cc9f0','#7b2d8b','#ffffff','#ff70a6',
+];
+const SPEED       = 3.2;
+const TURN_SPEED  = 0.055;
+const FRICTION    = 0.90;
+const DAMAGE_BASE = 8;
+
+// ══════════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════════
+let myId       = null;
+let myName     = '';
+let myCarType  = CARS[0];
+let myColor    = COLORS[0];
+let roomCode   = null;
+let isHost     = false;
+let gameState  = {};   // { players: { id: {...} }, status: 'waiting'|'playing'|'ended' }
+let lastKnownPlayers = {};
+
+let canvas, ctx;
+let keys = {};
+let gameLoop = null;
+let roomRef  = null;
+let stateRef = null;
+let stateListener = null;
+
+// ══════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
+function randomCode() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function setStatus(msg) {
+  document.getElementById('status-msg').textContent = msg;
+}
+
+// ══════════════════════════════════════════════
+// DIBUJADO DE AUTOS (preview + canvas)
+// ══════════════════════════════════════════════
+function drawCar(ctx, car, color, x, y, angle, scale = 1) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.scale(scale, scale);
+
+  const w = car.w, h = car.h;
+
+  // body
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.roundRect(-w/2, -h/2, w, h, 4);
+  ctx.fill();
+
+  // windshield
+  ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.fillRect(-w/2 + 4, -h/2 + 8, w - 8, h * 0.28);
+
+  // rear window
+  ctx.fillRect(-w/2 + 5, h/2 - 14, w - 10, 8);
+
+  // headlights
+  ctx.fillStyle = '#fffde7';
+  ctx.fillRect(-w/2 + 2, -h/2 + 2, 7, 5);
+  ctx.fillRect( w/2 - 9, -h/2 + 2, 7, 5);
+
+  // taillights
+  ctx.fillStyle = '#c1121f';
+  ctx.fillRect(-w/2 + 2, h/2 - 7, 7, 5);
+  ctx.fillRect( w/2 - 9, h/2 - 7, 7, 5);
+
+  ctx.restore();
+}
+
+function buildCarPicker() {
+  const container = document.getElementById('car-picker');
+  container.innerHTML = '';
+  CARS.forEach((car, i) => {
+    const div = document.createElement('div');
+    div.className = 'car-option' + (i === 0 ? ' selected' : '');
+    div.dataset.idx = i;
+
+    const c = document.createElement('canvas');
+    c.width  = car.w + 16;
+    c.height = car.h + 16;
+    const cx = c.getContext('2d');
+    drawCar(cx, car, myColor, c.width/2, c.height/2, 0);
+    
+    const span = document.createElement('span');
+    span.textContent = car.label;
+    div.appendChild(c);
+    div.appendChild(span);
+    div.addEventListener('click', () => {
+      document.querySelectorAll('.car-option').forEach(el => el.classList.remove('selected'));
+      div.classList.add('selected');
+      myCarType = CARS[i];
+      refreshCarPreviews();
+    });
+    container.appendChild(div);
+  });
+}
+
+function buildColorPicker() {
+  const container = document.getElementById('color-picker');
+  container.innerHTML = '';
+  COLORS.forEach((col, i) => {
+    const div = document.createElement('div');
+    div.className = 'color-swatch' + (i === 0 ? ' selected' : '');
+    div.style.background = col;
+    div.addEventListener('click', () => {
+      document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('selected'));
+      div.classList.add('selected');
+      myColor = col;
+      refreshCarPreviews();
+    });
+    container.appendChild(div);
+  });
+}
+
+function refreshCarPreviews() {
+  document.querySelectorAll('.car-option').forEach((div, i) => {
+    const c = div.querySelector('canvas');
+    const car = CARS[i];
+    c.width  = car.w + 16;
+    c.height = car.h + 16;
+    const cx = c.getContext('2d');
+    cx.clearRect(0, 0, c.width, c.height);
+    drawCar(cx, car, myColor, c.width/2, c.height/2, 0);
+  });
+}
+
+// ══════════════════════════════════════════════
+// CREAR SALA
+// ══════════════════════════════════════════════
+async function createRoom() {
+  const name = document.getElementById('input-name').value.trim();
+  if (!name) { setStatus('Ingresá tu nombre primero'); return; }
+  myName = name;
+  myId   = uid();
+  roomCode = randomCode();
+  isHost = true;
+
+  const playerData = {
+    name: myName,
+    carId: myCarType.id,
+    color: myColor,
+    isHost: true,
+    hp: MAX_HP,
+    x: ARENA_W / 2,
+    y: ARENA_H / 2,
+    angle: 0,
+    vx: 0, vy: 0,
+    alive: true,
+    lastUpdate: serverTimestamp(),
+  };
+
+  roomRef  = ref(db, `rooms/${roomCode}`);
+  stateRef = ref(db, `rooms/${roomCode}/players/${myId}`);
+
+  await set(ref(db, `rooms/${roomCode}`), {
+    status: 'waiting',
+    hostId: myId,
+    createdAt: serverTimestamp(),
+    players: { [myId]: playerData }
+  });
+
+  onDisconnect(ref(db, `rooms/${roomCode}/players/${myId}`)).remove();
+
+  document.getElementById('display-room-code').textContent = roomCode;
+  showScreen('screen-waiting');
+  listenToRoom();
+}
+
+// ══════════════════════════════════════════════
+// UNIRSE A SALA
+// ══════════════════════════════════════════════
+async function joinRoom() {
+  const name = document.getElementById('input-name').value.trim();
+  const code = document.getElementById('input-room-code').value.trim().toUpperCase();
+  if (!name) { setStatus('Ingresá tu nombre'); return; }
+  if (!code)  { setStatus('Ingresá el código de sala'); return; }
+
+  myName   = name;
+  myId     = uid();
+  roomCode = code;
+  isHost   = false;
+
+  const snap = await get(ref(db, `rooms/${code}`));
+  if (!snap.exists()) { setStatus('Sala no encontrada'); return; }
+  const room = snap.val();
+  if (room.status !== 'waiting') { setStatus('La partida ya empezó'); return; }
+
+  const playerData = {
+    name: myName,
+    carId: myCarType.id,
+    color: myColor,
+    isHost: false,
+    hp: MAX_HP,
+    x: ARENA_W / 2 + (Math.random() - .5) * 200,
+    y: ARENA_H / 2 + (Math.random() - .5) * 200,
+    angle: 0,
+    vx: 0, vy: 0,
+    alive: true,
+    lastUpdate: serverTimestamp(),
+  };
+
+  roomRef  = ref(db, `rooms/${roomCode}`);
+  stateRef = ref(db, `rooms/${roomCode}/players/${myId}`);
+
+  await set(stateRef, playerData);
+  onDisconnect(stateRef).remove();
+
+  document.getElementById('display-room-code').textContent = roomCode;
+  showScreen('screen-waiting');
+  listenToRoom();
+}
+
+// ══════════════════════════════════════════════
+// ESCUCHAR SALA
+// ══════════════════════════════════════════════
+function listenToRoom() {
+  stateListener = onValue(roomRef, (snap) => {
+    if (!snap.exists()) { leaveRoom(); return; }
+    const room = snap.val();
+    renderWaitingRoom(room);
+    if (room.status === 'playing' && !gameLoop) {
+      startGame(room);
+    }
+    if (room.status === 'playing') {
+      gameState = room;
+      checkVictory(room);
+    }
+  });
+}
+
+function renderWaitingRoom(room) {
+  const list = document.getElementById('players-list');
+  list.innerHTML = '';
+  const players = room.players || {};
+  Object.entries(players).forEach(([pid, p]) => {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.innerHTML = `
+      <div class="player-dot" style="background:${p.color}"></div>
+      <div class="player-name">${p.name}</div>
+      <div class="${p.isHost ? 'player-host-badge' : 'player-badge'}">${p.isHost ? 'HOST' : getCarLabel(p.carId)}</div>
+    `;
+    list.appendChild(row);
+  });
+
+  const startBtn  = document.getElementById('btn-start');
+  const waitHint  = document.getElementById('waiting-hint');
+  const count     = Object.keys(players).length;
+
+  if (isHost) {
+    startBtn.style.display = 'block';
+    startBtn.disabled = count < 1; // allow solo for testing
+    waitHint.textContent = count < 2
+      ? `Esperando más jugadores... (${count}/2 mínimo)`
+      : `${count} jugador${count > 1 ? 'es' : ''} listos. ¡Podés empezar!`;
+  } else {
+    startBtn.style.display = 'none';
+    waitHint.textContent = `${count} jugador${count > 1 ? 'es' : ''} en sala. Esperando al host...`;
+  }
+}
+
+function getCarLabel(id) { return CARS.find(c => c.id === id)?.label || id; }
+
+// ══════════════════════════════════════════════
+// INICIAR PARTIDA (host)
+// ══════════════════════════════════════════════
+async function startGame(room) {
+  showScreen('screen-game');
+  initCanvas();
+  initInput();
+  
+  const players  = room.players || {};
+  const count    = Object.keys(players).length;
+  const spawnPositions = getSpawnPositions(count);
+  const updates  = {};
+  
+  Object.keys(players).forEach((pid, i) => {
+    const sp = spawnPositions[i] || { x: ARENA_W/2, y: ARENA_H/2 };
+    updates[`rooms/${roomCode}/players/${pid}/x`]     = sp.x;
+    updates[`rooms/${roomCode}/players/${pid}/y`]     = sp.y;
+    updates[`rooms/${roomCode}/players/${pid}/angle`] = sp.angle;
+    updates[`rooms/${roomCode}/players/${pid}/hp`]    = MAX_HP;
+    updates[`rooms/${roomCode}/players/${pid}/vx`]    = 0;
+    updates[`rooms/${roomCode}/players/${pid}/vy`]    = 0;
+    updates[`rooms/${roomCode}/players/${pid}/alive`] = true;
+  });
+  
+  await update(ref(db), updates);
+  gameLoop = setInterval(gameStep, TICK_RATE);
+}
+
+function getSpawnPositions(n) {
+  const positions = [];
+  for (let i = 0; i < n; i++) {
+    const angle = (i / n) * Math.PI * 2;
+    const r     = Math.min(ARENA_W, ARENA_H) * 0.3;
+    positions.push({
+      x: ARENA_W/2 + Math.cos(angle) * r,
+      y: ARENA_H/2 + Math.sin(angle) * r,
+      angle: angle + Math.PI,
+    });
+  }
+  return positions;
+}
+
+async function hostStartGame() {
+  const snap = await get(roomRef);
+  if (!snap.exists()) return;
+  await update(roomRef, { status: 'playing' });
+}
+
+// ══════════════════════════════════════════════
+// CANVAS & INPUT
+// ══════════════════════════════════════════════
+function initCanvas() {
+  canvas = document.getElementById('gameCanvas');
+  ctx    = canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+}
+
+function resizeCanvas() {
+  if (!canvas) return;
+  const scale = Math.min(
+    window.innerWidth  / ARENA_W,
+    window.innerHeight / ARENA_H
+  );
+  canvas.width  = ARENA_W;
+  canvas.height = ARENA_H;
+  canvas.style.width  = (ARENA_W * scale) + 'px';
+  canvas.style.height = (ARENA_H * scale) + 'px';
+}
+
+function initInput() {
+  keys = {};
+  document.addEventListener('keydown', e => { keys[e.key] = true; });
+  document.addEventListener('keyup',   e => { keys[e.key] = false; });
+
+  // touch
+  const setKey = (k, val) => { keys[k] = val; };
+  const tbtnMap = {
+    'tbtn-up':    'ArrowUp',
+    'tbtn-down':  'ArrowDown',
+    'tbtn-left':  'ArrowLeft',
+    'tbtn-right': 'ArrowRight',
+  };
+  Object.entries(tbtnMap).forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('touchstart', e => { e.preventDefault(); setKey(key, true); });
+    el.addEventListener('touchend',   e => { e.preventDefault(); setKey(key, false); });
+  });
+}
+
+// ══════════════════════════════════════════════
+// GAME STEP (cliente: mueve su propio auto y sube)
+// ══════════════════════════════════════════════
+let localPlayer = null;
+
+function gameStep() {
+  if (!gameState.players) return;
+  
+  // Reconstruir localPlayer desde gameState
+  const remote = gameState.players[myId];
+  if (!remote || !remote.alive) {
+    if (!localPlayer) return;
+    // ya está muerto, no procesar input
+    renderFrame();
+    return;
+  }
+
+  if (!localPlayer) {
+    localPlayer = { ...remote };
+  }
+
+  const car = CARS.find(c => c.id === localPlayer.carId) || CARS[0];
+
+  // Input
+  const up    = keys['ArrowUp']   || keys['w'] || keys['W'];
+  const down  = keys['ArrowDown'] || keys['s'] || keys['S'];
+  const left  = keys['ArrowLeft'] || keys['a'] || keys['A'];
+  const right = keys['ArrowRight']|| keys['d'] || keys['D'];
+
+  if (left)  localPlayer.angle -= TURN_SPEED;
+  if (right) localPlayer.angle += TURN_SPEED;
+
+  const acc = up ? SPEED : (down ? -SPEED * 0.6 : 0);
+  localPlayer.vx += Math.sin(localPlayer.angle) * acc;
+  localPlayer.vy -= Math.cos(localPlayer.angle) * acc;
+
+  localPlayer.vx *= FRICTION;
+  localPlayer.vy *= FRICTION;
+
+  localPlayer.x += localPlayer.vx;
+  localPlayer.y += localPlayer.vy;
+
+  // Colisión con bordes de arena
+  const margin = 10;
+  const hw = car.w / 2, hh = car.h / 2;
+  if (localPlayer.x < margin + hw)         { localPlayer.x  = margin + hw;         localPlayer.vx *= -0.5; }
+  if (localPlayer.x > ARENA_W - margin - hw) { localPlayer.x = ARENA_W - margin - hw; localPlayer.vx *= -0.5; }
+  if (localPlayer.y < margin + hh)         { localPlayer.y  = margin + hh;         localPlayer.vy *= -0.5; }
+  if (localPlayer.y > ARENA_H - margin - hh) { localPlayer.y = ARENA_H - margin - hh; localPlayer.vy *= -0.5; }
+
+  // Colisiones con otros jugadores
+  if (gameState.players) {
+    Object.entries(gameState.players).forEach(([pid, other]) => {
+      if (pid === myId || !other.alive) return;
+      const otherCar = CARS.find(c => c.id === other.carId) || CARS[0];
+      const dx = localPlayer.x - other.x;
+      const dy = localPlayer.y - other.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const minDist = (car.w + otherCar.w) / 2 * 0.9;
+      if (dist < minDist && dist > 0) {
+        const speed = Math.sqrt(localPlayer.vx**2 + localPlayer.vy**2);
+        const impactDmg = Math.min(Math.round(speed * DAMAGE_BASE), 30);
+        if (impactDmg > 1) {
+          const newHp = Math.max(0, (other.hp || MAX_HP) - impactDmg);
+          update(ref(db), {
+            [`rooms/${roomCode}/players/${pid}/hp`]: newHp,
+            [`rooms/${roomCode}/players/${pid}/alive`]: newHp > 0,
+          });
+          // rebote
+          const nx = dx / dist, ny = dy / dist;
+          localPlayer.vx += nx * 2;
+          localPlayer.vy += ny * 2;
+        }
+      }
+    });
+  }
+
+  // Subir estado al servidor
+  update(ref(db), {
+    [`rooms/${roomCode}/players/${myId}/x`]:     localPlayer.x,
+    [`rooms/${roomCode}/players/${myId}/y`]:     localPlayer.y,
+    [`rooms/${roomCode}/players/${myId}/angle`]: localPlayer.angle,
+    [`rooms/${roomCode}/players/${myId}/vx`]:    localPlayer.vx,
+    [`rooms/${roomCode}/players/${myId}/vy`]:    localPlayer.vy,
+  });
+
+  renderFrame();
+}
+
+// ══════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════
+function renderFrame() {
+  if (!ctx) return;
+  const players = gameState.players || {};
+
+  // Arena
+  ctx.fillStyle = '#252530';
+  ctx.fillRect(0, 0, ARENA_W, ARENA_H);
+
+  // Tire marks texture (static noise)
+  ctx.fillStyle = 'rgba(0,0,0,.08)';
+  for (let i = 0; i < 40; i++) {
+    ctx.fillRect(
+      ((i * 173) % (ARENA_W - 40)),
+      ((i * 97)  % (ARENA_H - 10)),
+      Math.random() * 60 + 20, 3
+    );
+  }
+
+  // Arena border
+  ctx.strokeStyle = '#f5c40055';
+  ctx.lineWidth   = 8;
+  ctx.strokeRect(10, 10, ARENA_W - 20, ARENA_H - 20);
+
+  // Corner dashes
+  ctx.strokeStyle = '#f5c400';
+  ctx.lineWidth   = 3;
+  [[10,10],[ARENA_W-10,10],[10,ARENA_H-10],[ARENA_W-10,ARENA_H-10]].forEach(([cx,cy]) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, 20, 0, Math.PI*2);
+    ctx.stroke();
+  });
+
+  // Players
+  Object.entries(players).forEach(([pid, p]) => {
+    if (!p.alive) return;
+    const car = CARS.find(c => c.id === p.carId) || CARS[0];
+    const scale = pid === myId ? 1.05 : 1;
+    drawCar(ctx, car, p.color, p.x, p.y, p.angle, scale);
+
+    // Name tag
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    const nw = ctx.measureText(p.name).width + 10;
+    ctx.fillRect(p.x - nw/2, p.y + car.h/2 + 4, nw, 14);
+    ctx.fillStyle = pid === myId ? '#f5c400' : '#fff';
+    ctx.font = `bold 10px 'Exo 2', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(p.name, p.x, p.y + car.h/2 + 15);
+    ctx.textAlign = 'left';
+
+    // HP bar above car
+    const barW = car.w + 10;
+    const hpRatio = (p.hp || 0) / MAX_HP;
+    ctx.fillStyle = 'rgba(0,0,0,.5)';
+    ctx.fillRect(p.x - barW/2, p.y - car.h/2 - 10, barW, 5);
+    const hpColor = hpRatio > 0.5 ? '#2dc653' : hpRatio > 0.25 ? '#f5c400' : '#c1121f';
+    ctx.fillStyle = hpColor;
+    ctx.fillRect(p.x - barW/2, p.y - car.h/2 - 10, barW * hpRatio, 5);
+  });
+
+  // HUD
+  renderHUD(players);
+}
+
+function renderHUD(players) {
+  const hud = document.getElementById('hud');
+  hud.innerHTML = '';
+
+  const me = players[myId];
+  if (me) {
+    const div = document.createElement('div');
+    div.className = 'hud-player hud-me';
+    const hpRatio = (me.hp || 0) / MAX_HP;
+    const hpColor = hpRatio > 0.5 ? '#2dc653' : hpRatio > 0.25 ? '#f5c400' : '#c1121f';
+    div.innerHTML = `
+      <div class="hud-name" style="color:${me.color}">${me.name}</div>
+      <div class="health-bar-bg">
+        <div class="health-bar-fill" style="width:${hpRatio*100}%;background:${hpColor}"></div>
+      </div>
+    `;
+    hud.appendChild(div);
+  }
+
+  // Enemy HP bars (right side)
+  const right = document.createElement('div');
+  right.style.cssText = 'display:flex;flex-direction:column;gap:6px;align-items:flex-end';
+  Object.entries(players).forEach(([pid, p]) => {
+    if (pid === myId || !p.alive) return;
+    const hpRatio = (p.hp || 0) / MAX_HP;
+    const hpColor = hpRatio > 0.5 ? '#2dc653' : hpRatio > 0.25 ? '#f5c400' : '#c1121f';
+    const div = document.createElement('div');
+    div.className = 'hud-player';
+    div.style.alignItems = 'flex-end';
+    div.innerHTML = `
+      <div class="hud-name" style="color:${p.color};text-align:right">${p.name}</div>
+      <div class="health-bar-bg">
+        <div class="health-bar-fill" style="width:${hpRatio*100}%;background:${hpColor}"></div>
+      </div>
+    `;
+    right.appendChild(div);
+  });
+  hud.appendChild(right);
+}
+
+// ══════════════════════════════════════════════
+// VICTORIA / DERROTA
+// ══════════════════════════════════════════════
+function checkVictory(room) {
+  const players = room.players || {};
+  const alive   = Object.values(players).filter(p => p.alive);
+  const total   = Object.keys(players).length;
+
+  if (total < 2) return; // solo testing
+  if (alive.length <= 1 && room.status === 'playing') {
+    if (isHost) {
+      update(roomRef, { status: 'ended', winner: alive[0]?.name || '?' });
+    }
+    showOverlay(room, alive);
+  }
+}
+
+function showOverlay(room, alive) {
+  if (gameLoop) { clearInterval(gameLoop); gameLoop = null; }
+  const overlay = document.getElementById('overlay');
+  const myAlive = alive.find(p => gameState.players?.[myId]?.alive);
+
+  if (myAlive) {
+    document.getElementById('overlay-title').textContent = '🏆 ¡GANASTE!';
+    document.getElementById('overlay-sub').textContent   = 'Fuiste el último en pie';
+  } else {
+    const winner = alive[0];
+    document.getElementById('overlay-title').textContent = `${winner ? winner.name : '?'} gana`;
+    document.getElementById('overlay-sub').textContent   = 'Fuiste eliminado';
+  }
+  overlay.classList.add('show');
+}
+
+// ══════════════════════════════════════════════
+// SALIR / REINICIAR
+// ══════════════════════════════════════════════
+async function leaveRoom() {
+  if (stateListener && roomRef) off(roomRef, 'value', stateListener);
+  if (stateRef) await remove(stateRef).catch(() => {});
+  if (gameLoop)  { clearInterval(gameLoop); gameLoop = null; }
+  roomCode = null; roomRef = null; stateRef = null;
+  stateListener = null; localPlayer = null; gameState = {};
+  document.getElementById('overlay').classList.remove('show');
+  showScreen('screen-lobby');
+}
+
+async function playAgain() {
+  document.getElementById('overlay').classList.remove('show');
+  if (gameLoop) { clearInterval(gameLoop); gameLoop = null; }
+  localPlayer = null;
+
+  if (isHost) {
+    // Reiniciar HP de todos
+    const snap = await get(ref(db, `rooms/${roomCode}/players`));
+    if (!snap.exists()) return;
+    const players = snap.val();
+    const updates = { [`rooms/${roomCode}/status`]: 'waiting' };
+    Object.keys(players).forEach(pid => {
+      updates[`rooms/${roomCode}/players/${pid}/hp`]    = MAX_HP;
+      updates[`rooms/${roomCode}/players/${pid}/alive`] = true;
+    });
+    await update(ref(db), updates);
+  }
+  showScreen('screen-waiting');
+}
+
+// ══════════════════════════════════════════════
+// EVENTOS UI
+// ══════════════════════════════════════════════
+document.getElementById('btn-create').addEventListener('click', createRoom);
+document.getElementById('btn-join').addEventListener('click', joinRoom);
+document.getElementById('btn-leave').addEventListener('click', leaveRoom);
+document.getElementById('btn-back-lobby').addEventListener('click', leaveRoom);
+document.getElementById('btn-play-again').addEventListener('click', playAgain);
+
+document.getElementById('btn-start').addEventListener('click', async () => {
+  if (!isHost) return;
+  await hostStartGame();
+});
+
+// Enter en inputs
+document.getElementById('input-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-create').click();
+});
+document.getElementById('input-room-code').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-join').click();
+});
+document.getElementById('input-room-code').addEventListener('input', e => {
+  e.target.value = e.target.value.toUpperCase();
+});
+
+// ══════════════════════════════════════════════
+// INICIALIZAR UI ESTÁTICA
+// ══════════════════════════════════════════════
+buildCarPicker();
+buildColorPicker();
+</script>
+</body>
+</html>
