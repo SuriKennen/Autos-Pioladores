@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Autos Pioladores</title>
+<title>Autitos Pioladores</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,400;0,700;0,900;1,900&display=swap');
 
@@ -241,22 +241,44 @@ const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
 
 // ══════════════════════════════════
-// CONSTANTES
+// ⚙️ VARIABLES DEL JUEGO — editá acá
 // ══════════════════════════════════
-const ARENA_W  = 900;
-const ARENA_H  = 620;
-const MAX_HP   = 100;
-const NET_HZ   = 20;      // veces/seg que subimos posición a Firebase
-const PHY_HZ   = 60;      // física local a 60hz (rAF)
-const INTERP   = 0.18;    // interpolación suavizado remotos
+const CFG = {
+  // Arena
+  ARENA_W:    900,
+  ARENA_H:    620,
 
-// Especificaciones de autos
-const CARS = [
-  { id:'muscle',  label:'MUSCLE',  w:34, h:54, mass:1.5, accel:0.28, brake:0.38, grip:0.88, topspeed:7.0 },
-  { id:'compact', label:'COMPACT', w:26, h:44, mass:1.0, accel:0.35, brake:0.44, grip:0.82, topspeed:8.5 },
-  { id:'truck',   label:'TRUCK',   w:40, h:62, mass:2.5, accel:0.18, brake:0.28, grip:0.92, topspeed:5.5 },
-];
-const COLORS = ['#e63946','#f4a261','#f5c400','#2dc653','#4cc9f0','#a855f7','#ffffff','#ff70a6'];
+  // Jugadores
+  MAX_HP:     100,
+  NET_HZ:     20,     // veces/seg que se sube posición a Firebase
+  INTERP:     0.18,   // suavizado de movimiento de rivales (0.1=lento, 0.3=rápido)
+
+  // Físicas generales
+  BOUNCE_WALL:  0.55, // rebote contra paredes (0=sin rebote, 1=rebote total)
+  BOUNCE_CAR:   0.6,  // restitución en choque entre autos
+  DMG_FACTOR:   6,    // multiplicador de daño por velocidad de impacto
+  DMG_MIN:      2,    // daño mínimo para que cuente
+  DMG_MAX:      25,   // daño máximo por impacto
+
+  // Tipos de autos: { id, label, w, h, mass, accel, brake, grip, topspeed }
+  CARS: [
+    { id:'muscle',  label:'MUSCLE',  w:34, h:54, mass:1.5, accel:0.28, brake:0.38, grip:0.88, topspeed:7.0 },
+    { id:'compact', label:'COMPACT', w:26, h:44, mass:1.0, accel:0.35, brake:0.44, grip:0.82, topspeed:8.5 },
+    { id:'truck',   label:'TRUCK',   w:40, h:62, mass:2.5, accel:0.18, brake:0.28, grip:0.92, topspeed:5.5 },
+  ],
+
+  // Colores disponibles
+  COLORS: ['#e63946','#f4a261','#f5c400','#2dc653','#4cc9f0','#a855f7','#ffffff','#ff70a6'],
+};
+
+// Aliases cortos para no reescribir todo
+const ARENA_W  = CFG.ARENA_W;
+const ARENA_H  = CFG.ARENA_H;
+const MAX_HP   = CFG.MAX_HP;
+const NET_HZ   = CFG.NET_HZ;
+const INTERP   = CFG.INTERP;
+const CARS     = CFG.CARS;
+const COLORS   = CFG.COLORS;
 
 // ══════════════════════════════════
 // ESTADO
@@ -634,8 +656,11 @@ function physicsStep(dt){
   if(speed>0.3){
     const steerFactor=Math.min(speed/car.topspeed,1);
     const turnRate=0.065*steerFactor*(car.topspeed/8);
-    if(left)  local.angle-=turnRate;
-    if(right) local.angle+=turnRate;
+    // detectar si va hacia atrás para invertir el giro
+    const goingForward = (local.vx*Math.sin(local.angle) - local.vy*Math.cos(local.angle)) >= 0;
+    const dir = goingForward ? 1 : -1;
+    if(left)  local.angle -= turnRate * dir;
+    if(right) local.angle += turnRate * dir;
   }
 
   // Aceleración
@@ -688,7 +713,7 @@ function physicsStep(dt){
 function wallCollision(p,car){
   const margin=12;
   const hw=car.w/2, hh=car.h/2;
-  const bounce=0.55;
+  const bounce=CFG.BOUNCE_WALL;
 
   if(p.x-hw<margin){
     p.x=margin+hw;
@@ -779,15 +804,21 @@ function resolveCarCollision(a,carA,b,carB,bPid){
   // Impulso físico
   const e=0.6; // restitución
   const j=(1+e)*relSpeed/(1/massA+1/massB);
-  const impx=nx*(j/massA);
-  const impy=ny*(j/massA);
+  const impx = nx * j;
+  const impy = ny * j;
 
-  a.vx-=impx;
-  a.vy-=impy;
+  // aplicar impulso a los dos lados del choque
+  a.vx -= impx / massA;
+  a.vy -= impy / massA;
+  // empujar al remoto también (localmente, para visualización)
+  if(remoteTargets[bPid]){
+    remoteTargets[bPid].vx = (remoteTargets[bPid].vx||0) + impx / massB;
+    remoteTargets[bPid].vy = (remoteTargets[bPid].vy||0) + impy / massB;
+  }
 
   // Daño al otro (subir a Firebase solo si el daño es significativo)
-  const dmg=Math.min(Math.round(relSpeed*6),25);
-  if(dmg>=2){
+  const dmg=Math.min(Math.round(relSpeed*CFG.DMG_FACTOR),CFG.DMG_MA);
+  if(dmg>=CFG.DMG_MIN){
     const curHp=(firebaseState.players?.[bPid]?.hp)||MAX_HP;
     const newHp=Math.max(0,curHp-dmg);
     update(ref(db),{
