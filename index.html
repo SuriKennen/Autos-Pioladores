@@ -162,7 +162,7 @@ input[type=text]:focus{border-color:var(--yellow)}
 
 <!-- LOBBY -->
 <div id="screen-lobby" class="screen active">
-  <div style="margin-top: 0px"><div class="game-title">AUTOS PIOLADORES v1</div><div class="game-sub">último en pie gana</div></div>
+  <div style="margin-top: 0px"><div class="game-title">AUTITOS PIOLADORES<br></div><div class="game-sub">último en pie gana</div></div>
 
   <div class="cfg"><span class="lbl">Tu nombre</span>
     <input type="text" id="iname" placeholder="Elegí un nombre..." maxlength="16"></div>
@@ -659,10 +659,10 @@ function initInput(){
 function physicsStep(dt){
   if(isHost){
     // el host simula TODOS los jugadores
+    if(!firebaseState.players) return;
     const players = firebaseState.players;
-    if(!players) return;
 
-    Object.entries(players).forEach(([pid, p]) => {
+    Object.entries({...players}).forEach(([pid, p]) => {
       if(!p.alive) return;
       const car = carDef(p.carId);
 
@@ -714,15 +714,15 @@ function physicsStep(dt){
       y += vy * dt * 60;
 
       // escribir de vuelta al estado
-      players[pid] = { ...p, x, y, angle, vx, vy, hp };
-      wallCollision(players[pid], car);
+      firebaseState.players[pid] = { ...p, x, y, angle, vx, vy, hp };
+      wallCollision(firebaseState.players[pid], car);
     });
 
     // colisiones entre todos los pares
-    const pids = Object.keys(players).filter(pid => players[pid].alive);
+    const pids = Object.keys(firebaseState.players).filter(pid => firebaseState.players[pid].alive);
     for(let i = 0; i < pids.length; i++){
       for(let j = i+1; j < pids.length; j++){
-        const a = players[pids[i]], b = players[pids[j]];
+        const a = firebaseState.players[pids[i]], b = firebaseState.players[pids[j]];
         if(!a.alive || !b.alive) continue;
         resolveHostCollision(a, carDef(a.carId), b, carDef(b.carId));
       }
