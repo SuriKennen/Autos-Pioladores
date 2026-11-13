@@ -830,7 +830,16 @@
       stateListener = onValue(roomRef, snap => {
         if (!snap.exists()) { leaveRoom(); return }
         const room = snap.val();
-        firebaseState = room;
+
+        // ⚠️ BUG FIX: el host NO sobreescribe su estado físico con datos de Firebase.
+        // La física del host es autoritativa; solo actualizamos metadata (status/winner).
+        // Si el juego todavía no arrancó, sí copiamos todo para inicializar.
+        if (isHost && room.status === 'playing' && rafId) {
+          firebaseState.status = room.status;
+          if (room.winner) firebaseState.winner = room.winner;
+        } else {
+          firebaseState = room;
+        }
 
         if (room.status === 'waiting') {
           renderWaiting(room);
@@ -840,36 +849,60 @@
         }
         if (room.status === 'playing') {
           const players = room.players || {};
-          Object.entries(players).forEach(([pid, p]) => {
-            if (pid === myId) {
-              // sincronizar el estado local con lo que dice el host
-              if (!isHost) {
-                if (!remoteTargets[myId]) remoteTargets[myId] = { ...p };
-                remoteTargets[myId] = { ...p };
-                // corrección suave de posición (el cliente predijo localmente)
-                local.x = lerp(local.x, p.x, 0.08);
-                local.y = lerp(local.y, p.y, 0.08);
-                local.angle = lerpAngle(local.angle, p.angle, 0.08);
-                local.hp = p.hp;
-                local.alive = p.alive;
-              } else {
-                // el host actualiza firebaseState directamente en physicsStep
-                firebaseState.players = players;
-              }
-            } else {
-              if (!remoteTargets[pid]) remoteTargets[pid] = { ...p };
-              else {
-                remoteTargets[pid].x = p.x;
-                remoteTargets[pid].y = p.y;
-                remoteTargets[pid].angle = p.angle;
-                remoteTargets[pid].hp = p.hp;
-                remoteTargets[pid].alive = p.alive;
-                remoteTargets[pid].color = p.color;
-                remoteTargets[pid].carId = p.carId;
-                remoteTargets[pid].name = p.name;
-              }
+
+          if (isHost) {
+            // HOST: solo lee inputs de clientes y detecta desconexiones.
+            // No toca posiciones — la física local es la única fuente de verdad.
+            const fbPids = new Set(Object.keys(players));
+            if (firebaseState.players) {
+              // Eliminar jugadores que se desconectaron
+              Object.keys(firebaseState.players).forEach(pid => {
+                if (!fbPids.has(pid)) {
+                  delete firebaseState.players[pid];
+                  delete remoteTargets[pid];
+                  delete renderedRemotes[pid];
+                }
+              });
             }
-          });
+            // Leer inputs frescos de cada cliente
+            Object.entries(players).forEach(([pid, p]) => {
+              if (pid !== myId && firebaseState.players?.[pid]) {
+                firebaseState.players[pid].input = p.input || {};
+              }
+            });
+
+          } else {
+            // CLIENTE: recibir corrección del host para el propio auto,
+            // y actualizar posición de los demás jugadores.
+            Object.entries(players).forEach(([pid, p]) => {
+              if (pid === myId) {
+                // Guardar snapshot del host — la corrección se aplica
+                // suavemente cada frame en physicsStep (no aquí),
+                // para evitar jalones provocados por el timing de Firebase.
+                local._snap = {
+                  x: p.x, y: p.y, angle: p.angle,
+                  vx: p.vx ?? 0, vy: p.vy ?? 0
+                };
+                local.hp    = p.hp;
+                local.alive = p.alive;
+                // ⚠️ NO agregar myId a remoteTargets → evita dibujar
+                // el auto propio dos veces (desde local Y desde renderedRemotes)
+              } else {
+                if (!remoteTargets[pid]) remoteTargets[pid] = { ...p };
+                else {
+                  remoteTargets[pid].x = p.x;
+                  remoteTargets[pid].y = p.y;
+                  remoteTargets[pid].angle = p.angle;
+                  remoteTargets[pid].hp = p.hp;
+                  remoteTargets[pid].alive = p.alive;
+                  remoteTargets[pid].color = p.color;
+                  remoteTargets[pid].carId = p.carId;
+                  remoteTargets[pid].name = p.name;
+                }
+              }
+            });
+          }
+
           checkVictory(room);
         }
         if (room.status === 'ended' && !overlayShown) {
@@ -982,8 +1015,15 @@
     // ══════════════════════════════════
     function initInput() {
       keys = {};
-      const kd = e => { keys[e.key] = true };
-      const ku = e => { keys[e.key] = false };
+      const kd = e => {
+        if (keys[e.key]) return; // ignorar key-repeat
+        keys[e.key] = true;
+        if (!isHost) netUploadInput(); // subir input inmediatamente al presionar
+      };
+      const ku = e => {
+        keys[e.key] = false;
+        if (!isHost) netUploadInput(); // subir input inmediatamente al soltar
+      };
       document.addEventListener('keydown', kd);
       document.addEventListener('keyup', ku);
       // guardar refs para cleanup
@@ -993,8 +1033,8 @@
       Object.entries(tmap).forEach(([id, k]) => {
         const el = document.getElementById(id);
         if (!el) return;
-        el.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true }, { passive: false });
-        el.addEventListener('touchend', e => { e.preventDefault(); keys[k] = false }, { passive: false });
+        el.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true; if (!isHost) netUploadInput(); }, { passive: false });
+        el.addEventListener('touchend', e => { e.preventDefault(); keys[k] = false; if (!isHost) netUploadInput(); }, { passive: false });
       });
     }
 
@@ -1073,7 +1113,7 @@
           }
         }
 
-        // sincronizar local con el resultado de la física del host
+        // Sincronizar local con el resultado de la física del host
         const me = firebaseState.players[myId];
         if (me) {
           local.x = me.x;
@@ -1085,10 +1125,61 @@
           local.alive = me.alive;
         }
 
+        // ⚠️ BUG FIX: actualizar remoteTargets directo desde física (60fps).
+        // Antes iba por Firebase (30hz) y causaba lag/ghosting en los rivales.
+        Object.entries(firebaseState.players).forEach(([pid, p]) => {
+          if (pid === myId) return;
+          if (!remoteTargets[pid]) remoteTargets[pid] = { ...p };
+          else {
+            remoteTargets[pid].x = p.x;
+            remoteTargets[pid].y = p.y;
+            remoteTargets[pid].angle = p.angle;
+            remoteTargets[pid].hp = p.hp;
+            remoteTargets[pid].alive = p.alive;
+          }
+        });
+
       } else {
-        // clientes: solo mueven su auto localmente para feedback visual inmediato
-        // la posición "oficial" viene del host vía Firebase
+        // CLIENTE: predicción local 100% responsiva + corrección SOLO ante colisiones
         if (!local.alive) return;
+
+        // ── Reconciliación selectiva ────────────────────────────────────────
+        // El host simula el auto del cliente con inputs retrasados (~1 RTT),
+        // así que a ~100ms de latencia y velocidad máxima ya hay ~50px de drift
+        // normal. Corregir ese drift continuo es lo que genera el efecto "barro".
+        //
+        // Solución: ignorar diferencias pequeñas (drift de red) y solo corregir
+        // cuando hay una divergencia GRANDE, que casi siempre significa que el
+        // host aplicó un impulso de colisión que el cliente no simuló localmente.
+        if (local._snap) {
+          const dx   = local._snap.x - local.x;
+          const dy   = local._snap.y - local.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist > 160) {
+            // Divergencia extrema → hard snap (colisión muy fuerte o teleport)
+            local.x  = lerp(local.x,  local._snap.x,  0.5);
+            local.y  = lerp(local.y,  local._snap.y,  0.5);
+            local.vx = lerp(local.vx, local._snap.vx, 0.6);
+            local.vy = lerp(local.vy, local._snap.vy, 0.6);
+            local.angle = lerpAngle(local.angle, local._snap.angle, 0.45);
+          } else if (dist > 70) {
+            // Colisión media → corrección gradual de posición, velocidad y ángulo.
+            // ⚠️ El ángulo hay que corregirlo junto con la velocidad: si el host
+            // aplicó un impulso que cambió vx/vy, su grip model rotará el auto
+            // hacia la nueva dirección. Sin corregir el ángulo, el cliente quedaría
+            // con la trompa apuntando para el lado equivocado.
+            local.x  = lerp(local.x,  local._snap.x,  0.15);
+            local.y  = lerp(local.y,  local._snap.y,  0.15);
+            local.vx = lerp(local.vx, local._snap.vx, 0.25);
+            local.vy = lerp(local.vy, local._snap.vy, 0.25);
+            local.angle = lerpAngle(local.angle, local._snap.angle, 0.22);
+          }
+          // ≤ 70px: drift normal de red → predicción local 100%, sin tocar nada.
+          // El control se siente perfectamente responsivo.
+        }
+        // ───────────────────────────────────────────────────────────────────
+
         const car = carDef(local.carId);
         const up = keys['ArrowUp'] || keys['w'] || keys['W'];
         const down = keys['ArrowDown'] || keys['s'] || keys['S'];
@@ -1319,6 +1410,22 @@
     }
 
     // ══════════════════════════════════
+    // SUBIR INPUT A FIREBASE (clientes)
+    // Se llama inmediatamente en keydown/keyup Y como backup en el timer
+    // ══════════════════════════════════
+    function netUploadInput() {
+      if (!roomCode || isHost) return;
+      update(ref(db), {
+        [`rooms/${roomCode}/players/${myId}/input`]: {
+          up:    !!(keys['ArrowUp']    || keys['w'] || keys['W']),
+          down:  !!(keys['ArrowDown']  || keys['s'] || keys['S']),
+          left:  !!(keys['ArrowLeft']  || keys['a'] || keys['A']),
+          right: !!(keys['ArrowRight'] || keys['d'] || keys['D']),
+        }
+      });
+    }
+
+    // ══════════════════════════════════
     // SUBIR POSICIÓN A FIREBASE (20hz)
     // ══════════════════════════════════
     function netUpload() {
@@ -1337,15 +1444,8 @@
         });
         update(ref(db), updates);
       } else {
-        // los clientes solo suben sus inputs
-        update(ref(db), {
-          [`rooms/${roomCode}/players/${myId}/input`]: {
-            up: keys['ArrowUp'] || keys['w'] || keys['W'] || false,
-            down: keys['ArrowDown'] || keys['s'] || keys['S'] || false,
-            left: keys['ArrowLeft'] || keys['a'] || keys['A'] || false,
-            right: keys['ArrowRight'] || keys['d'] || keys['D'] || false,
-          }
-        });
+        // backup periódico del input (el upload real va en keydown/keyup)
+        netUploadInput();
       }
     }
 
