@@ -162,7 +162,7 @@ input[type=text]:focus{border-color:var(--yellow)}
 
 <!-- LOBBY -->
 <div id="screen-lobby" class="screen active">
-  <div style="margin-top: 0px"><div class="game-title">AUTOS PIOLADORES</div><div class="game-sub">último en pie gana</div></div>
+  <div style="margin-top: 0px"><div class="game-title">AUTOS PIOLADORES v1</div><div class="game-sub">último en pie gana</div></div>
 
   <div class="cfg"><span class="lbl">Tu nombre</span>
     <input type="text" id="iname" placeholder="Elegí un nombre..." maxlength="16"></div>
@@ -250,7 +250,7 @@ const CFG = {
 
   // Jugadores
   MAX_HP:     100,
-  NET_HZ:     20,     // veces/seg que se sube posición a Firebase
+  NET_HZ:     30,     // veces/seg que se sube posición a Firebase
   INTERP:     0.18,   // suavizado de movimiento de rivales (0.1=lento, 0.3=rápido)
 
   // Físicas generales
@@ -503,9 +503,9 @@ function listenRoom(){
         if(!remoteTargets[myId]) remoteTargets[myId] = {...p};
         remoteTargets[myId] = {...p};
         // corrección suave de posición (el cliente predijo localmente)
-        local.x     = lerp(local.x,     p.x,     0.3);
-        local.y     = lerp(local.y,     p.y,     0.3);
-        local.angle = lerpAngle(local.angle, p.angle, 0.3);
+        local.x     = lerp(local.x,     p.x,     0.08);
+        local.y     = lerp(local.y,     p.y,     0.08);
+        local.angle = lerpAngle(local.angle, p.angle, 0.08);
         local.hp    = p.hp;
         local.alive = p.alive;
       } else {
