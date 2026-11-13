@@ -1001,7 +1001,8 @@
     // ══════════════════════════════════
     // FÍSICA LOCAL — modelo de auto
     // ══════════════════════════════════
-    function physicsStep(dt) {
+    function physicsStep(dt){
+      console.log('isHost:', isHost, 'players:', firebaseState.players ? Object.keys(firebaseState.players).length : 'null');
       if (isHost) {
         // el host simula TODOS los jugadores
         if (!firebaseState.players) return;
