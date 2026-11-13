@@ -1,1214 +1,1560 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Autitos Pioladores</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,400;0,700;0,900;1,900&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autitos Pioladores</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,400;0,700;0,900;1,900&display=swap');
 
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
 
-:root{
-  --bg:#14141a;
-  --panel:#1e1e28;
-  --panel2:#272733;
-  --yellow:#f5c400;
-  --orange:#e85d04;
-  --red:#c1121f;
-  --white:#f0eff4;
-  --grey:#7a7a8a;
-  --green:#2dc653;
-  --blue:#4cc9f0;
-}
+    :root {
+      --bg: #14141a;
+      --panel: #1e1e28;
+      --panel2: #272733;
+      --yellow: #f5c400;
+      --orange: #e85d04;
+      --red: #c1121f;
+      --white: #f0eff4;
+      --grey: #7a7a8a;
+      --green: #2dc653;
+      --blue: #4cc9f0;
+    }
 
-body{
-  background:var(--bg);
-  color:var(--white);
-  font-family:'Exo 2',sans-serif;
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-}
+    body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: 'Exo 2', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
 
-/* ── SCREENS ── */
-.screen{display:none;flex-direction:column;align-items:center;width:100%}
-.screen.active{display:flex}
+    /* ── SCREENS ── */
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%
+    }
 
-/* ── LOBBY ── */
-#screen-lobby{gap:22px;padding:28px 20px 28px 20px;max-width:460px;width:100%;justify-content:flex-start;overflow-y:auto;max-height:100vh}
+    .screen.active {
+      display: flex
+    }
 
-.game-title{
-  font-size:clamp(1.8rem,6vw,2.8rem);
-  font-weight:900;
-  font-style:italic;
-  letter-spacing:-2px;
-  line-height:1;
-  color:var(--yellow);
-  text-shadow:3px 3px 0 var(--orange),6px 6px 0 var(--red);
-  text-align:center;
-}
-.game-sub{font-size:.78rem;color:var(--grey);letter-spacing:3px;text-transform:uppercase;text-align:center;margin-top:-14px}
+    /* ── LOBBY ── */
+    #screen-lobby {
+      gap: 22px;
+      padding: 28px 20px 28px 20px;
+      max-width: 460px;
+      width: 100%;
+      justify-content: flex-start;
+      overflow-y: auto;
+      max-height: 100vh
+    }
 
-.lbl{font-size:.68rem;letter-spacing:2px;color:var(--grey);text-transform:uppercase;align-self:flex-start}
+    .game-title {
+      font-size: clamp(1.8rem, 6vw, 2.8rem);
+      font-weight: 900;
+      font-style: italic;
+      letter-spacing: -2px;
+      line-height: 1;
+      color: var(--yellow);
+      text-shadow: 3px 3px 0 var(--orange), 6px 6px 0 var(--red);
+      text-align: center;
+    }
 
-input[type=text]{
-  width:100%;background:var(--panel2);border:2px solid var(--panel2);border-radius:6px;
-  color:var(--white);font-family:'Exo 2',sans-serif;font-size:1rem;font-weight:700;
-  padding:11px 14px;outline:none;transition:border-color .2s
-}
-input[type=text]:focus{border-color:var(--yellow)}
+    .game-sub {
+      font-size: .78rem;
+      color: var(--grey);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: -14px
+    }
 
-.car-picker{display:flex;gap:10px;width:100%}
-.car-opt{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;
-  padding:12px 8px;background:var(--panel2);border-radius:8px;
-  border:2px solid transparent;cursor:pointer;transition:border-color .15s,transform .1s;user-select:none
-}
-.car-opt:hover{border-color:var(--grey);transform:translateY(-2px)}
-.car-opt.sel{border-color:var(--yellow);background:var(--panel)}
-.car-opt span{font-size:.7rem;color:var(--grey);font-weight:700;letter-spacing:1px}
+    .lbl {
+      font-size: .68rem;
+      letter-spacing: 2px;
+      color: var(--grey);
+      text-transform: uppercase;
+      align-self: flex-start
+    }
 
-.color-picker{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
-.cswatch{
-  width:34px;height:34px;border-radius:50%;cursor:pointer;
-  border:3px solid transparent;transition:transform .15s,border-color .15s
-}
-.cswatch:hover{transform:scale(1.15)}
-.cswatch.sel{border-color:var(--white);transform:scale(1.2)}
+    input[type=text] {
+      width: 100%;
+      background: var(--panel2);
+      border: 2px solid var(--panel2);
+      border-radius: 6px;
+      color: var(--white);
+      font-family: 'Exo 2', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 11px 14px;
+      outline: none;
+      transition: border-color .2s
+    }
 
-.btn{
-  width:100%;padding:13px;border:none;border-radius:6px;
-  font-family:'Exo 2',sans-serif;font-size:.95rem;font-weight:900;
-  letter-spacing:1px;cursor:pointer;transition:transform .1s,filter .15s;
-  text-transform:uppercase
-}
-.btn:hover{transform:translateY(-2px);filter:brightness(1.1)}
-.btn:active{transform:translateY(0)}
-.btn-y{background:var(--yellow);color:var(--bg)}
-.btn-g{background:var(--panel2);color:var(--white);border:2px solid var(--grey)}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:none}
+    input[type=text]:focus {
+      border-color: var(--yellow)
+    }
 
-.divider{width:100%;display:flex;align-items:center;gap:10px;color:var(--grey);font-size:.75rem}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--panel2)}
+    .car-picker {
+      display: flex;
+      gap: 10px;
+      width: 100%
+    }
 
-.join-row{display:flex;gap:8px;width:100%}
-.join-row input{flex:1}
-.join-row .btn{width:auto;padding:11px 18px;white-space:nowrap}
+    .car-opt {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      padding: 12px 8px;
+      background: var(--panel2);
+      border-radius: 8px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color .15s, transform .1s;
+      user-select: none
+    }
 
-.cfg{width:100%;display:flex;flex-direction:column;gap:9px}
-#status-msg{font-size:.8rem;color:var(--grey);text-align:center;min-height:1.1em}
+    .car-opt:hover {
+      border-color: var(--grey);
+      transform: translateY(-2px)
+    }
 
-/* ── WAITING ── */
-#screen-waiting{gap:18px;padding:28px 20px;max-width:460px;width:100%}
-.room-box{background:var(--panel2);border-radius:10px;padding:18px;text-align:center;width:100%}
-.room-box .rl{font-size:.68rem;letter-spacing:2px;color:var(--grey);text-transform:uppercase}
-.room-box .rc{font-size:2.6rem;font-weight:900;letter-spacing:8px;color:var(--yellow);margin:6px 0 2px}
-.room-box .rh{font-size:.75rem;color:var(--grey)}
-.plist{width:100%;display:flex;flex-direction:column;gap:7px}
-.prow{display:flex;align-items:center;gap:11px;padding:9px 13px;background:var(--panel2);border-radius:8px}
-.pdot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
-.pname{font-weight:700;flex:1}
-.pbadge{font-size:.68rem;color:var(--grey);letter-spacing:1px}
-.phbadge{font-size:.68rem;color:var(--yellow);font-weight:700;letter-spacing:1px}
-.whint{font-size:.8rem;color:var(--grey);text-align:center}
+    .car-opt.sel {
+      border-color: var(--yellow);
+      background: var(--panel)
+    }
 
-/* ── GAME ── */
-#screen-game{position:fixed;inset:0;background:var(--bg);justify-content:center;align-items:center}
-#gameCanvas{display:block}
+    .car-opt span {
+      font-size: .7rem;
+      color: var(--grey);
+      font-weight: 700;
+      letter-spacing: 1px
+    }
 
-/* HUD */
-.hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:10px 14px;pointer-events:none}
-.hud-block{display:flex;flex-direction:column;gap:3px}
-.hud-name{font-size:.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase}
-.hbar-bg{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden;width:110px}
-.hbar-fill{height:100%;border-radius:4px;transition:width .15s}
+    .color-picker {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      justify-content: center
+    }
 
-/* OVERLAY */
-#overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.8);
-  display:none;flex-direction:column;align-items:center;justify-content:center;
-  gap:20px;z-index:100
-}
-#overlay.show{display:flex}
-#overlay .ot{font-size:clamp(2rem,8vw,3.2rem);font-weight:900;font-style:italic;color:var(--yellow);text-align:center;letter-spacing:-1px}
-#overlay .os{font-size:.95rem;color:var(--grey);text-align:center}
-#overlay .btn{max-width:280px}
+    .cswatch {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: transform .15s, border-color .15s
+    }
 
-/* Touch controls */
-#touch-ctrl{
-  position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
-  display:none;user-select:none
-}
-.dpad{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px);gap:3px}
-.tbtn{
-  width:56px;height:56px;background:rgba(255,255,255,.1);
-  border:2px solid rgba(255,255,255,.18);border-radius:9px;
-  display:flex;align-items:center;justify-content:center;font-size:1.3rem;
-  cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent
-}
-@media(pointer:coarse){#touch-ctrl{display:block}}
+    .cswatch:hover {
+      transform: scale(1.15)
+    }
 
-.ctrl-hint{
-  position:fixed;bottom:10px;left:50%;transform:translateX(-50%);
-  font-size:.68rem;color:var(--grey);letter-spacing:1px;pointer-events:none;white-space:nowrap
-}
-@media(pointer:coarse){.ctrl-hint{display:none}}
-</style>
+    .cswatch.sel {
+      border-color: var(--white);
+      transform: scale(1.2)
+    }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Exo 2', sans-serif;
+      font-size: .95rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: transform .1s, filter .15s;
+      text-transform: uppercase
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.1)
+    }
+
+    .btn:active {
+      transform: translateY(0)
+    }
+
+    .btn-y {
+      background: var(--yellow);
+      color: var(--bg)
+    }
+
+    .btn-g {
+      background: var(--panel2);
+      color: var(--white);
+      border: 2px solid var(--grey)
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      transform: none;
+      filter: none
+    }
+
+    .divider {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--grey);
+      font-size: .75rem
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--panel2)
+    }
+
+    .join-row {
+      display: flex;
+      gap: 8px;
+      width: 100%
+    }
+
+    .join-row input {
+      flex: 1
+    }
+
+    .join-row .btn {
+      width: auto;
+      padding: 11px 18px;
+      white-space: nowrap
+    }
+
+    .cfg {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 9px
+    }
+
+    #status-msg {
+      font-size: .8rem;
+      color: var(--grey);
+      text-align: center;
+      min-height: 1.1em
+    }
+
+    /* ── WAITING ── */
+    #screen-waiting {
+      gap: 18px;
+      padding: 28px 20px;
+      max-width: 460px;
+      width: 100%
+    }
+
+    .room-box {
+      background: var(--panel2);
+      border-radius: 10px;
+      padding: 18px;
+      text-align: center;
+      width: 100%
+    }
+
+    .room-box .rl {
+      font-size: .68rem;
+      letter-spacing: 2px;
+      color: var(--grey);
+      text-transform: uppercase
+    }
+
+    .room-box .rc {
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: 8px;
+      color: var(--yellow);
+      margin: 6px 0 2px
+    }
+
+    .room-box .rh {
+      font-size: .75rem;
+      color: var(--grey)
+    }
+
+    .plist {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 7px
+    }
+
+    .prow {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 9px 13px;
+      background: var(--panel2);
+      border-radius: 8px
+    }
+
+    .pdot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      flex-shrink: 0
+    }
+
+    .pname {
+      font-weight: 700;
+      flex: 1
+    }
+
+    .pbadge {
+      font-size: .68rem;
+      color: var(--grey);
+      letter-spacing: 1px
+    }
+
+    .phbadge {
+      font-size: .68rem;
+      color: var(--yellow);
+      font-weight: 700;
+      letter-spacing: 1px
+    }
+
+    .whint {
+      font-size: .8rem;
+      color: var(--grey);
+      text-align: center
+    }
+
+    /* ── GAME ── */
+    #screen-game {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      justify-content: center;
+      align-items: center
+    }
+
+    #gameCanvas {
+      display: block
+    }
+
+    /* HUD */
+    .hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 14px;
+      pointer-events: none
+    }
+
+    .hud-block {
+      display: flex;
+      flex-direction: column;
+      gap: 3px
+    }
+
+    .hud-name {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase
+    }
+
+    .hbar-bg {
+      height: 7px;
+      background: var(--panel2);
+      border-radius: 4px;
+      overflow: hidden;
+      width: 110px
+    }
+
+    .hbar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width .15s
+    }
+
+    /* OVERLAY */
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .8);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 100
+    }
+
+    #overlay.show {
+      display: flex
+    }
+
+    #overlay .ot {
+      font-size: clamp(2rem, 8vw, 3.2rem);
+      font-weight: 900;
+      font-style: italic;
+      color: var(--yellow);
+      text-align: center;
+      letter-spacing: -1px
+    }
+
+    #overlay .os {
+      font-size: .95rem;
+      color: var(--grey);
+      text-align: center
+    }
+
+    #overlay .btn {
+      max-width: 280px
+    }
+
+    /* Touch controls */
+    #touch-ctrl {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      user-select: none
+    }
+
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 56px);
+      grid-template-rows: repeat(3, 56px);
+      gap: 3px
+    }
+
+    .tbtn {
+      width: 56px;
+      height: 56px;
+      background: rgba(255, 255, 255, .1);
+      border: 2px solid rgba(255, 255, 255, .18);
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    @media(pointer:coarse) {
+      #touch-ctrl {
+        display: block
+      }
+    }
+
+    .ctrl-hint {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: .68rem;
+      color: var(--grey);
+      letter-spacing: 1px;
+      pointer-events: none;
+      white-space: nowrap
+    }
+
+    @media(pointer:coarse) {
+      .ctrl-hint {
+        display: none
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- LOBBY -->
-<div id="screen-lobby" class="screen active">
-  <div style="margin-top: 0px"><div class="game-title">AUTITOS PIOLADORES<br></div><div class="game-sub">último en pie gana</div></div>
+  <!-- LOBBY -->
+  <div id="screen-lobby" class="screen active">
+    <div style="margin-top: 0px">
+      <div class="game-title">AUTITOS PIOLADORES<br></div>
+    </div>
 
-  <div class="cfg"><span class="lbl">Tu nombre</span>
-    <input type="text" id="iname" placeholder="Elegí un nombre..." maxlength="16"></div>
+    <div class="cfg"><span class="lbl">Tu nombre</span>
+      <input type="text" id="iname" placeholder="Elegí un nombre..." maxlength="16">
+    </div>
 
-  <div class="cfg"><span class="lbl">Tipo de auto</span>
-    <div class="car-picker" id="car-picker"></div></div>
+    <div class="cfg"><span class="lbl">Tipo de auto</span>
+      <div class="car-picker" id="car-picker"></div>
+    </div>
 
-  <div class="cfg"><span class="lbl">Color</span>
-    <div class="color-picker" id="color-picker"></div></div>
+    <div class="cfg"><span class="lbl">Color</span>
+      <div class="color-picker" id="color-picker"></div>
+    </div>
 
-  <button class="btn btn-y" id="btn-create">Crear sala</button>
-  <div class="divider">o unite a una sala</div>
-  <div class="join-row">
-    <input type="text" id="icode" placeholder="Código de sala" maxlength="6" style="text-transform:uppercase;letter-spacing:4px">
-    <button class="btn btn-g" id="btn-join">Unirme</button>
+    <button class="btn btn-y" id="btn-create">Crear sala</button>
+    <div class="divider">o unite a una sala</div>
+    <div class="join-row">
+      <input type="text" id="icode" placeholder="Código de sala" maxlength="6"
+        style="text-transform:uppercase;letter-spacing:4px">
+      <button class="btn btn-g" id="btn-join">Unirme</button>
+    </div>
+    <div id="status-msg"></div>
   </div>
-  <div id="status-msg"></div>
-</div>
 
-<!-- WAITING -->
-<div id="screen-waiting" class="screen">
-  <div class="room-box">
-    <div class="rl">Código de sala</div>
-    <div class="rc" id="disp-code">------</div>
-    <div class="rh">Compartí este código con tus amigos</div>
+  <!-- WAITING -->
+  <div id="screen-waiting" class="screen">
+    <div class="room-box">
+      <div class="rl">Código de sala</div>
+      <div class="rc" id="disp-code">------</div>
+      <div class="rh">Compartí este código con tus amigos</div>
+    </div>
+    <div style="width:100%"><span class="lbl">Jugadores</span>
+      <div class="plist" id="plist" style="margin-top:9px"></div>
+    </div>
+    <div class="whint" id="whint">Esperando al host...</div>
+    <button class="btn btn-y" id="btn-start" style="display:none">¡Empezar partida!</button>
+    <button class="btn btn-g" id="btn-leave">Salir de la sala</button>
   </div>
-  <div style="width:100%"><span class="lbl">Jugadores</span>
-    <div class="plist" id="plist" style="margin-top:9px"></div></div>
-  <div class="whint" id="whint">Esperando al host...</div>
-  <button class="btn btn-y" id="btn-start" style="display:none">¡Empezar partida!</button>
-  <button class="btn btn-g" id="btn-leave">Salir de la sala</button>
-</div>
 
-<!-- GAME -->
-<div id="screen-game" class="screen">
-  <canvas id="gameCanvas"></canvas>
-  <div class="hud" id="hud"></div>
-  <div class="ctrl-hint">W A S D  /  ↑ ← ↓ →</div>
-  <div id="touch-ctrl">
-    <div class="dpad">
-      <div></div><div class="tbtn" id="tb-up">↑</div><div></div>
-      <div class="tbtn" id="tb-left">←</div><div></div><div class="tbtn" id="tb-right">→</div>
-      <div></div><div class="tbtn" id="tb-down">↓</div><div></div>
+  <!-- GAME -->
+  <div id="screen-game" class="screen">
+    <canvas id="gameCanvas"></canvas>
+    <div class="hud" id="hud"></div>
+    <div class="ctrl-hint">W A S D / ↑ ← ↓ →</div>
+    <div id="touch-ctrl">
+      <div class="dpad">
+        <div></div>
+        <div class="tbtn" id="tb-up">↑</div>
+        <div></div>
+        <div class="tbtn" id="tb-left">←</div>
+        <div></div>
+        <div class="tbtn" id="tb-right">→</div>
+        <div></div>
+        <div class="tbtn" id="tb-down">↓</div>
+        <div></div>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- OVERLAY -->
-<div id="overlay">
-  <div class="ot" id="ot"></div>
-  <div class="os" id="os"></div>
-  <button class="btn btn-y" id="btn-again">Jugar de nuevo</button>
-  <button class="btn btn-g" id="btn-back">Volver al lobby</button>
-</div>
+  <!-- OVERLAY -->
+  <div id="overlay">
+    <div class="ot" id="ot"></div>
+    <div class="os" id="os"></div>
+    <button class="btn btn-y" id="btn-again">Jugar de nuevo</button>
+    <button class="btn btn-g" id="btn-back">Volver al lobby</button>
+  </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getDatabase,ref,set,get,update,onValue,off,remove,onDisconnect,serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getDatabase, ref, set, get, update, onValue, off, remove, onDisconnect, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// ══════════════════════════════════
-// 🔥 FIREBASE CONFIG — REEMPLAZÁ
-// ══════════════════════════════════
-const firebaseConfig = {
-  apiKey: "AIzaSyBbtQ-xPpBP85U0T0UTKCZWugbk3j5CFKU",
-  authDomain: "autorpioladores.firebaseapp.com",
-  databaseURL: "https://autorpioladores-default-rtdb.firebaseio.com",
-  projectId: "autorpioladores",
-  storageBucket: "autorpioladores.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "autorpioladores"
-};
+    // ══════════════════════════════════
+    // 🔥 FIREBASE CONFIG — REEMPLAZÁ
+    // ══════════════════════════════════
+    const firebaseConfig = {
+      apiKey: "AIzaSyBbtQ-xPpBP85U0T0UTKCZWugbk3j5CFKU",
+      authDomain: "autorpioladores.firebaseapp.com",
+      databaseURL: "https://autorpioladores-default-rtdb.firebaseio.com",
+      projectId: "autorpioladores",
+      storageBucket: "autorpioladores.appspot.com",
+      messagingSenderId: "000000000000",
+      appId: "autorpioladores"
+    };
 
-const app = initializeApp(firebaseConfig);
-const db  = getDatabase(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-// ══════════════════════════════════
-// ⚙️ VARIABLES DEL JUEGO — editá acá
-// ══════════════════════════════════
-const CFG = {
-  // Arena
-  ARENA_W:    900,
-  ARENA_H:    620,
+    // ══════════════════════════════════
+    // ⚙️ VARIABLES DEL JUEGO — editá acá
+    // ══════════════════════════════════
+    const CFG = {
+      // Arena
+      ARENA_W: 900,
+      ARENA_H: 620,
 
-  // Jugadores
-  MAX_HP:     100,
-  NET_HZ:     30,     // veces/seg que se sube posición a Firebase
-  INTERP:     0.18,   // suavizado de movimiento de rivales (0.1=lento, 0.3=rápido)
+      // Jugadores
+      MAX_HP: 100,
+      NET_HZ: 30,     // veces/seg que se sube posición a Firebase
+      INTERP: 0.18,   // suavizado de movimiento de rivales (0.1=lento, 0.3=rápido)
 
-  // Físicas generales
-  BOUNCE_WALL:  0.55, // rebote contra paredes (0=sin rebote, 1=rebote total)
-  BOUNCE_CAR:   0.6,  // restitución en choque entre autos
-  DMG_FACTOR:   6,    // multiplicador de daño por velocidad de impacto
-  DMG_MIN:      2,    // daño mínimo para que cuente
-  DMG_MAX:      25,   // daño máximo por impacto
+      // Físicas generales
+      BOUNCE_WALL: 0.55, // rebote contra paredes (0=sin rebote, 1=rebote total)
+      BOUNCE_CAR: 0.6,  // restitución en choque entre autos
+      DMG_FACTOR: 6,    // multiplicador de daño por velocidad de impacto
+      DMG_MIN: 2,    // daño mínimo para que cuente
+      DMG_MAX: 25,   // daño máximo por impacto
 
-  // Tipos de autos: { id, label, w, h, mass, accel, brake, grip, topspeed }
-  CARS: [
-    { id:'muscle',  label:'MUSCLE',  w:34, h:54, mass:1.5, accel:0.28, brake:0.38, grip:0.88, topspeed:7.0 },
-    { id:'compact', label:'COMPACT', w:26, h:44, mass:1.0, accel:0.35, brake:0.44, grip:0.82, topspeed:8.5 },
-    { id:'truck',   label:'TRUCK',   w:40, h:62, mass:2.5, accel:0.18, brake:0.28, grip:0.92, topspeed:5.5 },
-  ],
+      // Tipos de autos: { id, label, w, h, mass, accel, brake, grip, topspeed }
+      CARS: [
+        { id: 'muscle', label: 'MUSCLE', w: 34, h: 54, mass: 1.5, accel: 0.28, brake: 0.38, grip: 0.88, topspeed: 7.0 },
+        { id: 'compact', label: 'COMPACT', w: 26, h: 44, mass: 1.0, accel: 0.35, brake: 0.44, grip: 0.82, topspeed: 8.5 },
+        { id: 'truck', label: 'TRUCK', w: 40, h: 62, mass: 2.5, accel: 0.18, brake: 0.28, grip: 0.92, topspeed: 5.5 },
+      ],
 
-  // Colores disponibles
-  COLORS: ['#e63946','#f4a261','#f5c400','#2dc653','#4cc9f0','#a855f7','#ffffff','#ff70a6'],
-};
+      // Colores disponibles
+      COLORS: ['#e63946', '#f4a261', '#f5c400', '#2dc653', '#4cc9f0', '#a855f7', '#ffffff', '#ff70a6'],
+    };
 
-// Aliases cortos para no reescribir todo
-const ARENA_W  = CFG.ARENA_W;
-const ARENA_H  = CFG.ARENA_H;
-const MAX_HP   = CFG.MAX_HP;
-const NET_HZ   = CFG.NET_HZ;
-const INTERP   = CFG.INTERP;
-const CARS     = CFG.CARS;
-const COLORS   = CFG.COLORS;
+    // Aliases cortos para no reescribir todo
+    const ARENA_W = CFG.ARENA_W;
+    const ARENA_H = CFG.ARENA_H;
+    const MAX_HP = CFG.MAX_HP;
+    const NET_HZ = CFG.NET_HZ;
+    const INTERP = CFG.INTERP;
+    const CARS = CFG.CARS;
+    const COLORS = CFG.COLORS;
 
-// ══════════════════════════════════
-// ESTADO
-// ══════════════════════════════════
-let myId='', myName='', myCarType=CARS[0], myColor=COLORS[0];
-let roomCode=null, isHost=false;
-let roomRef=null, stateRef=null, stateListener=null;
-let firebaseState={};   // snapshot en tiempo real de Firebase
-let remoteTargets={};   // posiciones objetivo para interpolar
-let local={};           // estado físico local del propio jugador
+    // ══════════════════════════════════
+    // ESTADO
+    // ══════════════════════════════════
+    let myId = '', myName = '', myCarType = CARS[0], myColor = COLORS[0];
+    let roomCode = null, isHost = false;
+    let roomRef = null, stateRef = null, stateListener = null;
+    let firebaseState = {};   // snapshot en tiempo real de Firebase
+    let remoteTargets = {};   // posiciones objetivo para interpolar
+    let local = {};           // estado físico local del propio jugador
 
-let canvas, ctx;
-let keys={};
-let rafId=null;
-let netTimer=null;
-let lastNetSend=0;
-let overlayShown=false;
+    let canvas, ctx;
+    let keys = {};
+    let rafId = null;
+    let netTimer = null;
+    let lastNetSend = 0;
+    let overlayShown = false;
 
-// ══════════════════════════════════
-// HELPERS
-// ══════════════════════════════════
-const uid=()=>Math.random().toString(36).slice(2,10);
-const rndCode=()=>Math.random().toString(36).slice(2,8).toUpperCase();
-const lerp=(a,b,t)=>a+(b-a)*t;
-const lerpAngle=(a,b,t)=>{
-  let d=b-a;
-  while(d> Math.PI)d-=Math.PI*2;
-  while(d<-Math.PI)d+=Math.PI*2;
-  return a+d*t;
-};
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-function setStatus(m){document.getElementById('status-msg').textContent=m}
-function carDef(id){return CARS.find(c=>c.id===id)||CARS[0]}
-
-// ══════════════════════════════════
-// DIBUJADO DE AUTOS
-// ══════════════════════════════════
-function drawCar(ctx,car,color,x,y,angle,alpha=1){
-  ctx.save();
-  ctx.globalAlpha=alpha;
-  ctx.translate(x,y);
-  ctx.rotate(angle);
-
-  const w=car.w, h=car.h;
-
-  // sombra
-  ctx.shadowColor='rgba(0,0,0,.5)';
-  ctx.shadowBlur=8;
-  ctx.shadowOffsetY=3;
-
-  // cuerpo
-  ctx.fillStyle=color;
-  ctx.beginPath();
-  ctx.roundRect(-w/2,-h/2,w,h,5);
-  ctx.fill();
-
-  ctx.shadowColor='transparent';
-  ctx.shadowBlur=0;
-  ctx.shadowOffsetY=0;
-
-  // parabrisas delantero
-  ctx.fillStyle='rgba(0,0,0,.5)';
-  ctx.beginPath();
-  ctx.roundRect(-w/2+4,-h/2+6,w-8,h*.28,2);
-  ctx.fill();
-
-  // luneta trasera
-  ctx.beginPath();
-  ctx.roundRect(-w/2+5,h/2-13,w-10,7,2);
-  ctx.fill();
-
-  // faros delanteros
-  ctx.fillStyle='#fffde7';
-  ctx.fillRect(-w/2+2,-h/2+2,8,5);
-  ctx.fillRect(w/2-10,-h/2+2,8,5);
-
-  // luces traseras
-  ctx.fillStyle='#c1121f';
-  ctx.fillRect(-w/2+2,h/2-7,8,5);
-  ctx.fillRect(w/2-10,h/2-7,8,5);
-
-  // línea central del capó
-  ctx.strokeStyle='rgba(0,0,0,.2)';
-  ctx.lineWidth=1;
-  ctx.beginPath();
-  ctx.moveTo(0,-h/2+2);
-  ctx.lineTo(0,-h/2+h*.45);
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-// ══════════════════════════════════
-// CAR PICKER UI
-// ══════════════════════════════════
-function buildCarPicker(){
-  const c=document.getElementById('car-picker');
-  c.innerHTML='';
-  CARS.forEach((car,i)=>{
-    const div=document.createElement('div');
-    div.className='car-opt'+(i===0?' sel':'');
-    const cv=document.createElement('canvas');
-    cv.width=car.w+16; cv.height=car.h+16;
-    const cx=cv.getContext('2d');
-    drawCar(cx,car,myColor,cv.width/2,cv.height/2,0);
-    const sp=document.createElement('span');
-    sp.textContent=car.label;
-    div.append(cv,sp);
-    div.addEventListener('click',()=>{
-      document.querySelectorAll('.car-opt').forEach(e=>e.classList.remove('sel'));
-      div.classList.add('sel');
-      myCarType=CARS[i];
-      refreshPreviews();
-    });
-    c.appendChild(div);
-  });
-}
-function buildColorPicker(){
-  const c=document.getElementById('color-picker');
-  c.innerHTML='';
-  COLORS.forEach((col,i)=>{
-    const div=document.createElement('div');
-    div.className='cswatch'+(i===0?' sel':'');
-    div.style.background=col;
-    div.addEventListener('click',()=>{
-      document.querySelectorAll('.cswatch').forEach(e=>e.classList.remove('sel'));
-      div.classList.add('sel');
-      myColor=col;
-      refreshPreviews();
-    });
-    c.appendChild(div);
-  });
-}
-function refreshPreviews(){
-  document.querySelectorAll('.car-opt').forEach((div,i)=>{
-    const car=CARS[i];
-    const cv=div.querySelector('canvas');
-    cv.width=car.w+16; cv.height=car.h+16;
-    const cx=cv.getContext('2d');
-    cx.clearRect(0,0,cv.width,cv.height);
-    drawCar(cx,car,myColor,cv.width/2,cv.height/2,0);
-  });
-}
-
-// ══════════════════════════════════
-// CREAR / UNIRSE A SALA
-// ══════════════════════════════════
-async function createRoom(){
-  const name=document.getElementById('iname').value.trim();
-  if(!name){setStatus('Ingresá tu nombre');return}
-  myName=name; myId=uid(); roomCode=rndCode(); isHost=true;
-
-  const pdata=makePlayerData(ARENA_W/2,ARENA_H/2,0);
-  roomRef=ref(db,`rooms/${roomCode}`);
-  stateRef=ref(db,`rooms/${roomCode}/players/${myId}`);
-
-  await set(roomRef,{status:'waiting',hostId:myId,createdAt:serverTimestamp(),players:{[myId]:pdata}});
-  onDisconnect(stateRef).remove();
-
-  document.getElementById('disp-code').textContent=roomCode;
-  showScreen('screen-waiting');
-  listenRoom();
-}
-
-async function joinRoom(){
-  const name=document.getElementById('iname').value.trim();
-  const code=document.getElementById('icode').value.trim().toUpperCase();
-  if(!name){setStatus('Ingresá tu nombre');return}
-  if(!code){setStatus('Ingresá el código');return}
-
-  myName=name; myId=uid(); roomCode=code; isHost=false;
-
-  const snap=await get(ref(db,`rooms/${code}`));
-  if(!snap.exists()){setStatus('Sala no encontrada');return}
-  if(snap.val().status!=='waiting'){setStatus('La partida ya empezó');return}
-
-  const sp=getSpawnPos(Object.keys(snap.val().players||{}).length);
-  const pdata=makePlayerData(sp.x,sp.y,sp.angle);
-  stateRef=ref(db,`rooms/${roomCode}/players/${myId}`);
-  roomRef=ref(db,`rooms/${roomCode}`);
-
-  await set(stateRef,pdata);
-  onDisconnect(stateRef).remove();
-
-  document.getElementById('disp-code').textContent=roomCode;
-  showScreen('screen-waiting');
-  listenRoom();
-}
-
-function makePlayerData(x,y,angle){
-  return{
-    name:myName,carId:myCarType.id,color:myColor,
-    isHost,hp:MAX_HP,x,y,angle,
-    vx:0,vy:0,alive:true,ts:serverTimestamp()
-  };
-}
-
-// ══════════════════════════════════
-// ESCUCHAR SALA
-// ══════════════════════════════════
-function listenRoom(){
-  stateListener=onValue(roomRef,snap=>{
-    if(!snap.exists()){leaveRoom();return}
-    const room=snap.val();
-    firebaseState=room;
-
-    if(room.status==='waiting'){
-      renderWaiting(room);
+    // ══════════════════════════════════
+    // HELPERS
+    // ══════════════════════════════════
+    const uid = () => Math.random().toString(36).slice(2, 10);
+    const rndCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const lerpAngle = (a, b, t) => {
+      let d = b - a;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      return a + d * t;
+    };
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
     }
-    if(room.status==='playing'&&!rafId){
-      initGame(room);
-    }
-    if(room.status === 'playing'){
-  const players = room.players || {};
-  Object.entries(players).forEach(([pid, p]) => {
-    if(pid === myId){
-      // sincronizar el estado local con lo que dice el host
-      if(!isHost){
-        if(!remoteTargets[myId]) remoteTargets[myId] = {...p};
-        remoteTargets[myId] = {...p};
-        // corrección suave de posición (el cliente predijo localmente)
-        local.x     = lerp(local.x,     p.x,     0.08);
-        local.y     = lerp(local.y,     p.y,     0.08);
-        local.angle = lerpAngle(local.angle, p.angle, 0.08);
-        local.hp    = p.hp;
-        local.alive = p.alive;
-      } else {
-        // el host actualiza firebaseState directamente en physicsStep
-        firebaseState.players = players;
-      }
-    } else {
-      if(!remoteTargets[pid]) remoteTargets[pid] = {...p};
-      else {
-        remoteTargets[pid].x     = p.x;
-        remoteTargets[pid].y     = p.y;
-        remoteTargets[pid].angle = p.angle;
-        remoteTargets[pid].hp    = p.hp;
-        remoteTargets[pid].alive = p.alive;
-        remoteTargets[pid].color = p.color;
-        remoteTargets[pid].carId = p.carId;
-        remoteTargets[pid].name  = p.name;
-      }
-    }
-  });
-  checkVictory(room);
-}
-    if(room.status==='ended'&&!overlayShown){
-      showOverlay(room);
-    }
-  });
-}
+    function setStatus(m) { document.getElementById('status-msg').textContent = m }
+    function carDef(id) { return CARS.find(c => c.id === id) || CARS[0] }
 
-function renderWaiting(room){
-  const list=document.getElementById('plist');
-  list.innerHTML='';
-  const players=room.players||{};
-  Object.entries(players).forEach(([pid,p])=>{
-    const row=document.createElement('div');
-    row.className='prow';
-    row.innerHTML=`<div class="pdot" style="background:${p.color}"></div>
+    // ══════════════════════════════════
+    // DIBUJADO DE AUTOS
+    // ══════════════════════════════════
+    function drawCar(ctx, car, color, x, y, angle, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      const w = car.w, h = car.h;
+
+      // sombra
+      ctx.shadowColor = 'rgba(0,0,0,.5)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 3;
+
+      // cuerpo
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(-w / 2, -h / 2, w, h, 5);
+      ctx.fill();
+
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      // parabrisas delantero
+      ctx.fillStyle = 'rgba(0,0,0,.5)';
+      ctx.beginPath();
+      ctx.roundRect(-w / 2 + 4, -h / 2 + 6, w - 8, h * .28, 2);
+      ctx.fill();
+
+      // luneta trasera
+      ctx.beginPath();
+      ctx.roundRect(-w / 2 + 5, h / 2 - 13, w - 10, 7, 2);
+      ctx.fill();
+
+      // faros delanteros
+      ctx.fillStyle = '#fffde7';
+      ctx.fillRect(-w / 2 + 2, -h / 2 + 2, 8, 5);
+      ctx.fillRect(w / 2 - 10, -h / 2 + 2, 8, 5);
+
+      // luces traseras
+      ctx.fillStyle = '#c1121f';
+      ctx.fillRect(-w / 2 + 2, h / 2 - 7, 8, 5);
+      ctx.fillRect(w / 2 - 10, h / 2 - 7, 8, 5);
+
+      // línea central del capó
+      ctx.strokeStyle = 'rgba(0,0,0,.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, -h / 2 + 2);
+      ctx.lineTo(0, -h / 2 + h * .45);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // ══════════════════════════════════
+    // CAR PICKER UI
+    // ══════════════════════════════════
+    function buildCarPicker() {
+      const c = document.getElementById('car-picker');
+      c.innerHTML = '';
+      CARS.forEach((car, i) => {
+        const div = document.createElement('div');
+        div.className = 'car-opt' + (i === 0 ? ' sel' : '');
+        const cv = document.createElement('canvas');
+        cv.width = car.w + 16; cv.height = car.h + 16;
+        const cx = cv.getContext('2d');
+        drawCar(cx, car, myColor, cv.width / 2, cv.height / 2, 0);
+        const sp = document.createElement('span');
+        sp.textContent = car.label;
+        div.append(cv, sp);
+        div.addEventListener('click', () => {
+          document.querySelectorAll('.car-opt').forEach(e => e.classList.remove('sel'));
+          div.classList.add('sel');
+          myCarType = CARS[i];
+          refreshPreviews();
+        });
+        c.appendChild(div);
+      });
+    }
+    function buildColorPicker() {
+      const c = document.getElementById('color-picker');
+      c.innerHTML = '';
+      COLORS.forEach((col, i) => {
+        const div = document.createElement('div');
+        div.className = 'cswatch' + (i === 0 ? ' sel' : '');
+        div.style.background = col;
+        div.addEventListener('click', () => {
+          document.querySelectorAll('.cswatch').forEach(e => e.classList.remove('sel'));
+          div.classList.add('sel');
+          myColor = col;
+          refreshPreviews();
+        });
+        c.appendChild(div);
+      });
+    }
+    function refreshPreviews() {
+      document.querySelectorAll('.car-opt').forEach((div, i) => {
+        const car = CARS[i];
+        const cv = div.querySelector('canvas');
+        cv.width = car.w + 16; cv.height = car.h + 16;
+        const cx = cv.getContext('2d');
+        cx.clearRect(0, 0, cv.width, cv.height);
+        drawCar(cx, car, myColor, cv.width / 2, cv.height / 2, 0);
+      });
+    }
+
+    // ══════════════════════════════════
+    // CREAR / UNIRSE A SALA
+    // ══════════════════════════════════
+    async function createRoom() {
+      const name = document.getElementById('iname').value.trim();
+      if (!name) { setStatus('Ingresá tu nombre'); return }
+      myName = name; myId = uid(); roomCode = rndCode(); isHost = true;
+
+      const pdata = makePlayerData(ARENA_W / 2, ARENA_H / 2, 0);
+      roomRef = ref(db, `rooms/${roomCode}`);
+      stateRef = ref(db, `rooms/${roomCode}/players/${myId}`);
+
+      await set(roomRef, { status: 'waiting', hostId: myId, createdAt: serverTimestamp(), players: { [myId]: pdata } });
+      onDisconnect(stateRef).remove();
+
+      document.getElementById('disp-code').textContent = roomCode;
+      showScreen('screen-waiting');
+      listenRoom();
+    }
+
+    async function joinRoom() {
+      const name = document.getElementById('iname').value.trim();
+      const code = document.getElementById('icode').value.trim().toUpperCase();
+      if (!name) { setStatus('Ingresá tu nombre'); return }
+      if (!code) { setStatus('Ingresá el código'); return }
+
+      myName = name; myId = uid(); roomCode = code; isHost = false;
+
+      const snap = await get(ref(db, `rooms/${code}`));
+      if (!snap.exists()) { setStatus('Sala no encontrada'); return }
+      if (snap.val().status !== 'waiting') { setStatus('La partida ya empezó'); return }
+
+      const sp = getSpawnPos(Object.keys(snap.val().players || {}).length);
+      const pdata = makePlayerData(sp.x, sp.y, sp.angle);
+      stateRef = ref(db, `rooms/${roomCode}/players/${myId}`);
+      roomRef = ref(db, `rooms/${roomCode}`);
+
+      await set(stateRef, pdata);
+      onDisconnect(stateRef).remove();
+
+      document.getElementById('disp-code').textContent = roomCode;
+      showScreen('screen-waiting');
+      listenRoom();
+    }
+
+    function makePlayerData(x, y, angle) {
+      return {
+        name: myName, carId: myCarType.id, color: myColor,
+        isHost, hp: MAX_HP, x, y, angle,
+        vx: 0, vy: 0, alive: true, ts: serverTimestamp()
+      };
+    }
+
+    // ══════════════════════════════════
+    // ESCUCHAR SALA
+    // ══════════════════════════════════
+    function listenRoom() {
+      stateListener = onValue(roomRef, snap => {
+        if (!snap.exists()) { leaveRoom(); return }
+        const room = snap.val();
+        firebaseState = room;
+
+        if (room.status === 'waiting') {
+          renderWaiting(room);
+        }
+        if (room.status === 'playing' && !rafId) {
+          initGame(room);
+        }
+        if (room.status === 'playing') {
+          const players = room.players || {};
+          Object.entries(players).forEach(([pid, p]) => {
+            if (pid === myId) {
+              // sincronizar el estado local con lo que dice el host
+              if (!isHost) {
+                if (!remoteTargets[myId]) remoteTargets[myId] = { ...p };
+                remoteTargets[myId] = { ...p };
+                // corrección suave de posición (el cliente predijo localmente)
+                local.x = lerp(local.x, p.x, 0.08);
+                local.y = lerp(local.y, p.y, 0.08);
+                local.angle = lerpAngle(local.angle, p.angle, 0.08);
+                local.hp = p.hp;
+                local.alive = p.alive;
+              } else {
+                // el host actualiza firebaseState directamente en physicsStep
+                firebaseState.players = players;
+              }
+            } else {
+              if (!remoteTargets[pid]) remoteTargets[pid] = { ...p };
+              else {
+                remoteTargets[pid].x = p.x;
+                remoteTargets[pid].y = p.y;
+                remoteTargets[pid].angle = p.angle;
+                remoteTargets[pid].hp = p.hp;
+                remoteTargets[pid].alive = p.alive;
+                remoteTargets[pid].color = p.color;
+                remoteTargets[pid].carId = p.carId;
+                remoteTargets[pid].name = p.name;
+              }
+            }
+          });
+          checkVictory(room);
+        }
+        if (room.status === 'ended' && !overlayShown) {
+          showOverlay(room);
+        }
+      });
+    }
+
+    function renderWaiting(room) {
+      const list = document.getElementById('plist');
+      list.innerHTML = '';
+      const players = room.players || {};
+      Object.entries(players).forEach(([pid, p]) => {
+        const row = document.createElement('div');
+        row.className = 'prow';
+        row.innerHTML = `<div class="pdot" style="background:${p.color}"></div>
       <div class="pname">${p.name}</div>
-      <div class="${p.isHost?'phbadge':'pbadge'}">${p.isHost?'HOST':carDef(p.carId).label}</div>`;
-    list.appendChild(row);
-  });
-  const n=Object.keys(players).length;
-  const sb=document.getElementById('btn-start');
-  const wh=document.getElementById('whint');
-  if(isHost){
-    sb.style.display='block';
-    sb.disabled=n<1;
-    wh.textContent=n<2?`Esperando jugadores... (${n}/2)`:`${n} jugadores listos — ¡podés empezar!`;
-  }else{
-    sb.style.display='none';
-    wh.textContent=`${n} jugador${n>1?'es':''} en sala. Esperando al host...`;
-  }
-}
-
-// ══════════════════════════════════
-// INICIAR PARTIDA
-// ══════════════════════════════════
-async function hostStart(){
-  const snap=await get(ref(db,`rooms/${roomCode}/players`));
-  if(!snap.exists())return;
-  const players=snap.val();
-  const pids=Object.keys(players);
-  const updates={[`rooms/${roomCode}/status`]:'playing'};
-  pids.forEach((pid,i)=>{
-    const sp=getSpawnPos(i,pids.length);
-    updates[`rooms/${roomCode}/players/${pid}/x`]=sp.x;
-    updates[`rooms/${roomCode}/players/${pid}/y`]=sp.y;
-    updates[`rooms/${roomCode}/players/${pid}/angle`]=sp.angle;
-    updates[`rooms/${roomCode}/players/${pid}/hp`]=MAX_HP;
-    updates[`rooms/${roomCode}/players/${pid}/vx`]=0;
-    updates[`rooms/${roomCode}/players/${pid}/vy`]=0;
-    updates[`rooms/${roomCode}/players/${pid}/alive`]=true;
-  });
-  await update(ref(db),updates);
-}
-
-function getSpawnPos(i,total=1){
-  const r=Math.min(ARENA_W,ARENA_H)*.28;
-  const a=(i/Math.max(total,1))*Math.PI*2;
-  return{
-    x:ARENA_W/2+Math.cos(a)*r,
-    y:ARENA_H/2+Math.sin(a)*r,
-    angle:a+Math.PI
-  };
-}
-
-// ══════════════════════════════════
-// INICIALIZAR JUEGO
-// ══════════════════════════════════
-function initGame(room){
-  showScreen('screen-game');
-  overlayShown=false;
-
-  canvas=document.getElementById('gameCanvas');
-  ctx=canvas.getContext('2d');
-  resizeCanvas();
-  window.addEventListener('resize',resizeCanvas);
-
-  // Inicializar estado físico local
-  const me=room.players?.[myId];
-  if(!me)return;
-  local={
-    x:me.x, y:me.y, angle:me.angle,
-    vx:0, vy:0,
-    carId:me.carId, color:me.color, name:me.name,
-    hp:me.hp, alive:true
-  };
-
-  // Inicializar targets remotos
-  remoteTargets={};
-  Object.entries(room.players||{}).forEach(([pid,p])=>{
-    if(pid!==myId) remoteTargets[pid]={...p};
-  });
-
-  initInput();
-  lastNetSend=performance.now();
-  rafId=requestAnimationFrame(gameLoop);
-}
-
-function resizeCanvas(){
-  if(!canvas)return;
-  const sc=Math.min(window.innerWidth/ARENA_W,window.innerHeight/ARENA_H);
-  canvas.width=ARENA_W; canvas.height=ARENA_H;
-  canvas.style.width=(ARENA_W*sc)+'px';
-  canvas.style.height=(ARENA_H*sc)+'px';
-}
-
-// ══════════════════════════════════
-// INPUT
-// ══════════════════════════════════
-function initInput(){
-  keys={};
-  const kd=e=>{keys[e.key]=true};
-  const ku=e=>{keys[e.key]=false};
-  document.addEventListener('keydown',kd);
-  document.addEventListener('keyup',ku);
-  // guardar refs para cleanup
-  window._kd=kd; window._ku=ku;
-
-  const tmap={'tb-up':'ArrowUp','tb-down':'ArrowDown','tb-left':'ArrowLeft','tb-right':'ArrowRight'};
-  Object.entries(tmap).forEach(([id,k])=>{
-    const el=document.getElementById(id);
-    if(!el)return;
-    el.addEventListener('touchstart',e=>{e.preventDefault();keys[k]=true},{passive:false});
-    el.addEventListener('touchend',e=>{e.preventDefault();keys[k]=false},{passive:false});
-  });
-}
-
-// ══════════════════════════════════
-// FÍSICA LOCAL — modelo de auto
-// ══════════════════════════════════
-function physicsStep(dt){
-  if(isHost){
-    // el host simula TODOS los jugadores
-    if(!firebaseState.players) return;
-    const players = firebaseState.players;
-
-    Object.entries({...players}).forEach(([pid, p]) => {
-      if(!p.alive) return;
-      const car = carDef(p.carId);
-
-      // leer input: el host usa keys[] para sí mismo, Firebase input para el resto
-      let up, down, left, right;
-      if(pid === myId){
-        up    = keys['ArrowUp']   || keys['w'] || keys['W'];
-        down  = keys['ArrowDown'] || keys['s'] || keys['S'];
-        left  = keys['ArrowLeft'] || keys['a'] || keys['A'];
-        right = keys['ArrowRight']|| keys['d'] || keys['D'];
+      <div class="${p.isHost ? 'phbadge' : 'pbadge'}">${p.isHost ? 'HOST' : carDef(p.carId).label}</div>`;
+        list.appendChild(row);
+      });
+      const n = Object.keys(players).length;
+      const sb = document.getElementById('btn-start');
+      const wh = document.getElementById('whint');
+      if (isHost) {
+        sb.style.display = 'block';
+        sb.disabled = n < 1;
+        wh.textContent = n < 2 ? `Esperando jugadores... (${n}/2)` : `${n} jugadores listos — ¡podés empezar!`;
       } else {
-        const inp = p.input || {};
-        up = inp.up; down = inp.down; left = inp.left; right = inp.right;
-      }
-
-      let {x, y, angle, vx=0, vy=0, hp} = p;
-
-      const speed = Math.sqrt(vx**2 + vy**2);
-      if(speed > 0.3){
-        const steerFactor = Math.min(speed / car.topspeed, 1);
-        const turnRate = 0.065 * steerFactor * (car.topspeed / 8);
-        const goingForward = (vx * Math.sin(angle) - vy * Math.cos(angle)) >= 0;
-        const dir = goingForward ? 1 : -1;
-        if(left)  angle -= turnRate * dir;
-        if(right) angle += turnRate * dir;
-      }
-
-      if(up){
-        vx += Math.sin(angle) * car.accel * dt * 60;
-        vy -= Math.cos(angle) * car.accel * dt * 60;
-      }
-      if(down){
-        vx -= Math.sin(angle) * car.brake * 0.6 * dt * 60;
-        vy += Math.cos(angle) * car.brake * 0.6 * dt * 60;
-      }
-
-      const spd2 = Math.sqrt(vx**2 + vy**2);
-      if(spd2 > car.topspeed){ vx=(vx/spd2)*car.topspeed; vy=(vy/spd2)*car.topspeed; }
-
-      const fwd  =  Math.sin(angle)*vx - Math.cos(angle)*vy;
-      const lat  =  Math.cos(angle)*vx + Math.sin(angle)*vy;
-      const newLat = lat * car.grip;
-      vx = Math.sin(angle)*fwd + Math.cos(angle)*newLat;
-      vy = -Math.cos(angle)*fwd + Math.sin(angle)*newLat;
-
-      if(!up && !down){ vx *= 0.96; vy *= 0.96; }
-
-      x += vx * dt * 60;
-      y += vy * dt * 60;
-
-      // escribir de vuelta al estado
-      firebaseState.players[pid] = { ...p, x, y, angle, vx, vy, hp };
-      wallCollision(firebaseState.players[pid], car);
-    });
-
-    // colisiones entre todos los pares
-    const pids = Object.keys(firebaseState.players).filter(pid => firebaseState.players[pid].alive);
-    for(let i = 0; i < pids.length; i++){
-      for(let j = i+1; j < pids.length; j++){
-        const a = firebaseState.players[pids[i]], b = firebaseState.players[pids[j]];
-        if(!a.alive || !b.alive) continue;
-        resolveHostCollision(a, carDef(a.carId), b, carDef(b.carId));
+        sb.style.display = 'none';
+        wh.textContent = `${n} jugador${n > 1 ? 'es' : ''} en sala. Esperando al host...`;
       }
     }
 
-  } else {
-    // clientes: solo mueven su auto localmente para feedback visual inmediato
-    // la posición "oficial" viene del host vía Firebase
-    if(!local.alive) return;
-    const car = carDef(local.carId);
-    const up    = keys['ArrowUp']   || keys['w'] || keys['W'];
-    const down  = keys['ArrowDown'] || keys['s'] || keys['S'];
-    const left  = keys['ArrowLeft'] || keys['a'] || keys['A'];
-    const right = keys['ArrowRight']|| keys['d'] || keys['D'];
-
-    const speed = Math.sqrt(local.vx**2 + local.vy**2);
-    if(speed > 0.3){
-      const steerFactor = Math.min(speed / car.topspeed, 1);
-      const turnRate = 0.065 * steerFactor * (car.topspeed / 8);
-      const goingForward = (local.vx*Math.sin(local.angle) - local.vy*Math.cos(local.angle)) >= 0;
-      const dir = goingForward ? 1 : -1;
-      if(left)  local.angle -= turnRate * dir;
-      if(right) local.angle += turnRate * dir;
+    // ══════════════════════════════════
+    // INICIAR PARTIDA
+    // ══════════════════════════════════
+    async function hostStart() {
+      const snap = await get(ref(db, `rooms/${roomCode}/players`));
+      if (!snap.exists()) return;
+      const players = snap.val();
+      const pids = Object.keys(players);
+      const updates = { [`rooms/${roomCode}/status`]: 'playing' };
+      pids.forEach((pid, i) => {
+        const sp = getSpawnPos(i, pids.length);
+        updates[`rooms/${roomCode}/players/${pid}/x`] = sp.x;
+        updates[`rooms/${roomCode}/players/${pid}/y`] = sp.y;
+        updates[`rooms/${roomCode}/players/${pid}/angle`] = sp.angle;
+        updates[`rooms/${roomCode}/players/${pid}/hp`] = MAX_HP;
+        updates[`rooms/${roomCode}/players/${pid}/vx`] = 0;
+        updates[`rooms/${roomCode}/players/${pid}/vy`] = 0;
+        updates[`rooms/${roomCode}/players/${pid}/alive`] = true;
+      });
+      await update(ref(db), updates);
     }
-    if(up){
-      local.vx += Math.sin(local.angle)*car.accel*dt*60;
-      local.vy -= Math.cos(local.angle)*car.accel*dt*60;
+
+    function getSpawnPos(i, total = 1) {
+      const r = Math.min(ARENA_W, ARENA_H) * .28;
+      const a = (i / Math.max(total, 1)) * Math.PI * 2;
+      return {
+        x: ARENA_W / 2 + Math.cos(a) * r,
+        y: ARENA_H / 2 + Math.sin(a) * r,
+        angle: a + Math.PI
+      };
     }
-    if(down){
-      local.vx -= Math.sin(local.angle)*car.brake*0.6*dt*60;
-      local.vy += Math.cos(local.angle)*car.brake*0.6*dt*60;
+
+    // ══════════════════════════════════
+    // INICIALIZAR JUEGO
+    // ══════════════════════════════════
+    function initGame(room) {
+      showScreen('screen-game');
+      overlayShown = false;
+
+      canvas = document.getElementById('gameCanvas');
+      ctx = canvas.getContext('2d');
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      // Inicializar estado físico local
+      const me = room.players?.[myId];
+      if (!me) return;
+      firebaseState = room;
+      local = {
+        x: me.x, y: me.y, angle: me.angle,
+        vx: 0, vy: 0,
+        carId: me.carId, color: me.color, name: me.name,
+        hp: me.hp, alive: true
+      };
+
+      // Inicializar targets remotos
+      remoteTargets = {};
+      Object.entries(room.players || {}).forEach(([pid, p]) => {
+        if (pid !== myId) remoteTargets[pid] = { ...p };
+      });
+
+      initInput();
+      lastNetSend = performance.now();
+      rafId = requestAnimationFrame(gameLoop);
     }
-    const spd2 = Math.sqrt(local.vx**2+local.vy**2);
-    if(spd2>car.topspeed){local.vx=(local.vx/spd2)*car.topspeed;local.vy=(local.vy/spd2)*car.topspeed;}
-    const fwd  =  Math.sin(local.angle)*local.vx - Math.cos(local.angle)*local.vy;
-    const lat  =  Math.cos(local.angle)*local.vx + Math.sin(local.angle)*local.vy;
-    const newLat = lat*car.grip;
-    local.vx = Math.sin(local.angle)*fwd + Math.cos(local.angle)*newLat;
-    local.vy = -Math.cos(local.angle)*fwd + Math.sin(local.angle)*newLat;
-    if(!up&&!down){local.vx*=0.96;local.vy*=0.96;}
-    local.x += local.vx*dt*60;
-    local.y += local.vy*dt*60;
-    wallCollision(local, car);
-  }
-}
-function wallCollision(p,car){
-  const margin=12;
-  const hw=car.w/2, hh=car.h/2;
-  const bounce=CFG.BOUNCE_WALL;
 
-  if(p.x-hw<margin){
-    p.x=margin+hw;
-    p.vx=Math.abs(p.vx)*bounce;
-  }
-  if(p.x+hw>ARENA_W-margin){
-    p.x=ARENA_W-margin-hw;
-    p.vx=-Math.abs(p.vx)*bounce;
-  }
-  if(p.y-hh<margin){
-    p.y=margin+hh;
-    p.vy=Math.abs(p.vy)*bounce;
-  }
-  if(p.y+hh>ARENA_H-margin){
-    p.y=ARENA_H-margin-hh;
-    p.vy=-Math.abs(p.vy)*bounce;
-  }
-}
-
-// ── SAT AABB (aproximado para rectángulos rotados) ──
-// Usamos los 4 vértices del auto y proyección sobre los ejes del otro
-function getCorners(p,car){
-  const hw=car.w/2, hh=car.h/2;
-  const cos=Math.cos(p.angle), sin=Math.sin(p.angle);
-  return[
-    {x:p.x+cos*(-hw)-sin*(-hh), y:p.y+sin*(-hw)+cos*(-hh)},
-    {x:p.x+cos*( hw)-sin*(-hh), y:p.y+sin*( hw)+cos*(-hh)},
-    {x:p.x+cos*( hw)-sin*( hh), y:p.y+sin*( hw)+cos*( hh)},
-    {x:p.x+cos*(-hw)-sin*( hh), y:p.y+sin*(-hw)+cos*( hh)},
-  ];
-}
-
-function projectCorners(corners,axis){
-  let min=Infinity,max=-Infinity;
-  corners.forEach(c=>{
-    const p=c.x*axis.x+c.y*axis.y;
-    if(p<min)min=p;
-    if(p>max)max=p;
-  });
-  return{min,max};
-}
-
-function resolveCarCollision(a,carA,b,carB,bPid){
-  const cornersA=getCorners(a,carA);
-  const cornersB=getCorners(b,carB);
-
-  // Ejes a testear: normales de los 4 lados (2 por coche = 4 ejes únicos)
-  const axes=[
-    {x:Math.cos(a.angle), y:Math.sin(a.angle)},
-    {x:-Math.sin(a.angle),y:Math.cos(a.angle)},
-    {x:Math.cos(b.angle), y:Math.sin(b.angle)},
-    {x:-Math.sin(b.angle),y:Math.cos(b.angle)},
-  ];
-
-  let minOverlap=Infinity;
-  let minAxis=null;
-
-  for(const ax of axes){
-    const pA=projectCorners(cornersA,ax);
-    const pB=projectCorners(cornersB,ax);
-    const overlap=Math.min(pA.max,pB.max)-Math.max(pA.min,pB.min);
-    if(overlap<=0)return; // separados, no hay colisión
-    if(overlap<minOverlap){
-      minOverlap=overlap;
-      minAxis=ax;
+    function resizeCanvas() {
+      if (!canvas) return;
+      const sc = Math.min(window.innerWidth / ARENA_W, window.innerHeight / ARENA_H);
+      canvas.width = ARENA_W; canvas.height = ARENA_H;
+      canvas.style.width = (ARENA_W * sc) + 'px';
+      canvas.style.height = (ARENA_H * sc) + 'px';
     }
-  }
 
-  // Hay colisión — resolver
-  const dx=b.x-a.x, dy=b.y-a.y;
-  const dot=dx*minAxis.x+dy*minAxis.y;
-  const nx=dot<0?-minAxis.x:-minAxis.x*-1;
-  const ny=dot<0?-minAxis.y:-minAxis.y*-1;
+    // ══════════════════════════════════
+    // INPUT
+    // ══════════════════════════════════
+    function initInput() {
+      keys = {};
+      const kd = e => { keys[e.key] = true };
+      const ku = e => { keys[e.key] = false };
+      document.addEventListener('keydown', kd);
+      document.addEventListener('keyup', ku);
+      // guardar refs para cleanup
+      window._kd = kd; window._ku = ku;
 
-  // Separar (mover A)
-  const massA=carA.mass, massB=carB.mass;
-  const totalMass=massA+massB;
-  a.x-=nx*minOverlap*(massB/totalMass);
-  a.y-=ny*minOverlap*(massB/totalMass);
+      const tmap = { 'tb-up': 'ArrowUp', 'tb-down': 'ArrowDown', 'tb-left': 'ArrowLeft', 'tb-right': 'ArrowRight' };
+      Object.entries(tmap).forEach(([id, k]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true }, { passive: false });
+        el.addEventListener('touchend', e => { e.preventDefault(); keys[k] = false }, { passive: false });
+      });
+    }
 
-  // Velocidad relativa para calcular daño e impulso
-  const rvx=a.vx-(b.vx||0);
-  const rvy=a.vy-(b.vy||0);
-  const relSpeed=Math.abs(rvx*nx+rvy*ny);
+    // ══════════════════════════════════
+    // FÍSICA LOCAL — modelo de auto
+    // ══════════════════════════════════
+    function physicsStep(dt) {
+      if (isHost) {
+        // el host simula TODOS los jugadores
+        if (!firebaseState.players) return;
+        const players = firebaseState.players;
 
-  if(relSpeed<0.5)return; // colisión muy lenta, ignorar
+        Object.entries({ ...players }).forEach(([pid, p]) => {
+          if (!p.alive) return;
+          const car = carDef(p.carId);
 
-  // Impulso físico
-  const e=0.6; // restitución
-  const j=(1+e)*relSpeed/(1/massA+1/massB);
-  const impx = nx * j;
-  const impy = ny * j;
+          // leer input: el host usa keys[] para sí mismo, Firebase input para el resto
+          let up, down, left, right;
+          if (pid === myId) {
+            up = keys['ArrowUp'] || keys['w'] || keys['W'];
+            down = keys['ArrowDown'] || keys['s'] || keys['S'];
+            left = keys['ArrowLeft'] || keys['a'] || keys['A'];
+            right = keys['ArrowRight'] || keys['d'] || keys['D'];
+          } else {
+            const inp = p.input || {};
+            up = inp.up; down = inp.down; left = inp.left; right = inp.right;
+          }
 
-  // aplicar impulso a los dos lados del choque
-  a.vx -= impx / massA;
-  a.vy -= impy / massA;
-  // empujar al remoto también (localmente, para visualización)
-  if(remoteTargets[bPid]){
-    remoteTargets[bPid].vx = (remoteTargets[bPid].vx||0) + impx / massB;
-    remoteTargets[bPid].vy = (remoteTargets[bPid].vy||0) + impy / massB;
-  }
+          let { x, y, angle, vx = 0, vy = 0, hp } = p;
 
-  // Daño al otro (subir a Firebase solo si el daño es significativo)
-  const dmg = Math.min(Math.round(relSpeed * CFG.DMG_FACTOR), CFG.DMG_MAX);
-  if(dmg >= CFG.DMG_MIN){
-    const curHp = typeof remoteTargets[bPid]?.hp === 'number' ? remoteTargets[bPid].hp : MAX_HP;
-    const newHp = Math.max(0, curHp - dmg);
-    // actualizar local inmediatamente para que no aplique daño doble
-    remoteTargets[bPid].hp = newHp;
-    remoteTargets[bPid].alive = newHp > 0;
-    update(ref(db),{
-      [`rooms/${roomCode}/players/${bPid}/hp`]: newHp,
-      [`rooms/${roomCode}/players/${bPid}/alive`]: newHp > 0,
-    });
-  }
-}
+          const speed = Math.sqrt(vx ** 2 + vy ** 2);
+          if (speed > 0.3) {
+            const steerFactor = Math.min(speed / car.topspeed, 1);
+            const turnRate = 0.065 * steerFactor * (car.topspeed / 8);
+            const goingForward = (vx * Math.sin(angle) - vy * Math.cos(angle)) >= 0;
+            const dir = goingForward ? 1 : -1;
+            if (left) angle -= turnRate * dir;
+            if (right) angle += turnRate * dir;
+          }
 
-function resolveHostCollision(a, carA, b, carB){
-  const cornersA = getCorners(a, carA);
-  const cornersB = getCorners(b, carB);
-  const axes = [
-    {x:Math.cos(a.angle), y:Math.sin(a.angle)},
-    {x:-Math.sin(a.angle),y:Math.cos(a.angle)},
-    {x:Math.cos(b.angle), y:Math.sin(b.angle)},
-    {x:-Math.sin(b.angle),y:Math.cos(b.angle)},
-  ];
-  let minOverlap = Infinity, minAxis = null;
-  for(const ax of axes){
-    const pA = projectCorners(cornersA, ax);
-    const pB = projectCorners(cornersB, ax);
-    const overlap = Math.min(pA.max,pB.max) - Math.max(pA.min,pB.min);
-    if(overlap <= 0) return;
-    if(overlap < minOverlap){ minOverlap = overlap; minAxis = ax; }
-  }
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const dot = dx*minAxis.x + dy*minAxis.y;
-  const nx = dot < 0 ? -minAxis.x : minAxis.x;
-  const ny = dot < 0 ? -minAxis.y : minAxis.y;
-  const totalMass = carA.mass + carB.mass;
-  a.x -= nx * minOverlap * (carB.mass/totalMass);
-  a.y -= ny * minOverlap * (carB.mass/totalMass);
-  b.x += nx * minOverlap * (carA.mass/totalMass);
-  b.y += ny * minOverlap * (carA.mass/totalMass);
+          if (up) {
+            vx += Math.sin(angle) * car.accel * dt * 60;
+            vy -= Math.cos(angle) * car.accel * dt * 60;
+          }
+          if (down) {
+            vx -= Math.sin(angle) * car.brake * 0.6 * dt * 60;
+            vy += Math.cos(angle) * car.brake * 0.6 * dt * 60;
+          }
 
-  const rvx = a.vx - b.vx, rvy = a.vy - b.vy;
-  const relSpeed = Math.abs(rvx*nx + rvy*ny);
-  if(relSpeed < 0.5) return;
+          const spd2 = Math.sqrt(vx ** 2 + vy ** 2);
+          if (spd2 > car.topspeed) { vx = (vx / spd2) * car.topspeed; vy = (vy / spd2) * car.topspeed; }
 
-  const e = CFG.BOUNCE_CAR;
-  const j = (1+e)*relSpeed / (1/carA.mass + 1/carB.mass);
-  a.vx -= nx*(j/carA.mass);
-  a.vy -= ny*(j/carA.mass);
-  b.vx += nx*(j/carB.mass);
-  b.vy += ny*(j/carB.mass);
+          const fwd = Math.sin(angle) * vx - Math.cos(angle) * vy;
+          const lat = Math.cos(angle) * vx + Math.sin(angle) * vy;
+          const newLat = lat * car.grip;
+          vx = Math.sin(angle) * fwd + Math.cos(angle) * newLat;
+          vy = -Math.cos(angle) * fwd + Math.sin(angle) * newLat;
 
-  const dmg = Math.min(Math.round(relSpeed * CFG.DMG_FACTOR), CFG.DMG_MAX);
-  if(dmg >= CFG.DMG_MIN){
-    a.hp = Math.max(0, (a.hp||MAX_HP) - dmg);
-    b.hp = Math.max(0, (b.hp||MAX_HP) - dmg);
-    a.alive = a.hp > 0;
-    b.alive = b.hp > 0;
-  }
-}
+          if (!up && !down) { vx *= 0.96; vy *= 0.96; }
 
-// ══════════════════════════════════
-// INTERPOLACIÓN DE REMOTOS
-// ══════════════════════════════════
-let renderedRemotes={};
+          x += vx * dt * 60;
+          y += vy * dt * 60;
 
-function interpolateRemotes(dt){
-  Object.entries(remoteTargets).forEach(([pid,target])=>{
-    if(!renderedRemotes[pid]) renderedRemotes[pid]={...target};
-    const r=renderedRemotes[pid];
-    const t=Math.min(INTERP*dt*60,1);
-    r.x=lerp(r.x,target.x,t);
-    r.y=lerp(r.y,target.y,t);
-    r.angle=lerpAngle(r.angle,target.angle,t);
-    r.hp=target.hp;
-    r.alive=target.alive;
-    r.color=target.color;
-    r.carId=target.carId;
-    r.name=target.name;
-  });
-  // limpiar desconectados
-  Object.keys(renderedRemotes).forEach(pid=>{
-    if(!remoteTargets[pid])delete renderedRemotes[pid];
-  });
-}
+          // escribir de vuelta al estado
+          firebaseState.players[pid] = { ...p, x, y, angle, vx, vy, hp };
+          wallCollision(firebaseState.players[pid], car);
+        });
 
-// ══════════════════════════════════
-// SUBIR POSICIÓN A FIREBASE (20hz)
-// ══════════════════════════════════
-function netUpload(){
-  if(isHost){
-    // el host sube el estado completo de todos los jugadores
-    if(!firebaseState.players) return;
-    const updates = {};
-    Object.entries(firebaseState.players).forEach(([pid, p]) => {
-      updates[`rooms/${roomCode}/players/${pid}/x`]     = p.x;
-      updates[`rooms/${roomCode}/players/${pid}/y`]     = p.y;
-      updates[`rooms/${roomCode}/players/${pid}/angle`] = p.angle;
-      updates[`rooms/${roomCode}/players/${pid}/vx`]    = p.vx;
-      updates[`rooms/${roomCode}/players/${pid}/vy`]    = p.vy;
-      updates[`rooms/${roomCode}/players/${pid}/hp`]    = p.hp;
-      updates[`rooms/${roomCode}/players/${pid}/alive`] = p.alive;
-    });
-    update(ref(db), updates);
-  } else {
-    // los clientes solo suben sus inputs
-    update(ref(db), {
-      [`rooms/${roomCode}/players/${myId}/input`]: {
-        up:    keys['ArrowUp']   || keys['w'] || keys['W'] || false,
-        down:  keys['ArrowDown'] || keys['s'] || keys['S'] || false,
-        left:  keys['ArrowLeft'] || keys['a'] || keys['A'] || false,
-        right: keys['ArrowRight']|| keys['d'] || keys['D'] || false,
+        // colisiones entre todos los pares
+        const pids = Object.keys(firebaseState.players).filter(pid => firebaseState.players[pid].alive);
+        for (let i = 0; i < pids.length; i++) {
+          for (let j = i + 1; j < pids.length; j++) {
+            const a = firebaseState.players[pids[i]], b = firebaseState.players[pids[j]];
+            if (!a.alive || !b.alive) continue;
+            resolveHostCollision(a, carDef(a.carId), b, carDef(b.carId));
+          }
+        }
+
+      } else {
+        // clientes: solo mueven su auto localmente para feedback visual inmediato
+        // la posición "oficial" viene del host vía Firebase
+        if (!local.alive) return;
+        const car = carDef(local.carId);
+        const up = keys['ArrowUp'] || keys['w'] || keys['W'];
+        const down = keys['ArrowDown'] || keys['s'] || keys['S'];
+        const left = keys['ArrowLeft'] || keys['a'] || keys['A'];
+        const right = keys['ArrowRight'] || keys['d'] || keys['D'];
+
+        const speed = Math.sqrt(local.vx ** 2 + local.vy ** 2);
+        if (speed > 0.3) {
+          const steerFactor = Math.min(speed / car.topspeed, 1);
+          const turnRate = 0.065 * steerFactor * (car.topspeed / 8);
+          const goingForward = (local.vx * Math.sin(local.angle) - local.vy * Math.cos(local.angle)) >= 0;
+          const dir = goingForward ? 1 : -1;
+          if (left) local.angle -= turnRate * dir;
+          if (right) local.angle += turnRate * dir;
+        }
+        if (up) {
+          local.vx += Math.sin(local.angle) * car.accel * dt * 60;
+          local.vy -= Math.cos(local.angle) * car.accel * dt * 60;
+        }
+        if (down) {
+          local.vx -= Math.sin(local.angle) * car.brake * 0.6 * dt * 60;
+          local.vy += Math.cos(local.angle) * car.brake * 0.6 * dt * 60;
+        }
+        const spd2 = Math.sqrt(local.vx ** 2 + local.vy ** 2);
+        if (spd2 > car.topspeed) { local.vx = (local.vx / spd2) * car.topspeed; local.vy = (local.vy / spd2) * car.topspeed; }
+        const fwd = Math.sin(local.angle) * local.vx - Math.cos(local.angle) * local.vy;
+        const lat = Math.cos(local.angle) * local.vx + Math.sin(local.angle) * local.vy;
+        const newLat = lat * car.grip;
+        local.vx = Math.sin(local.angle) * fwd + Math.cos(local.angle) * newLat;
+        local.vy = -Math.cos(local.angle) * fwd + Math.sin(local.angle) * newLat;
+        if (!up && !down) { local.vx *= 0.96; local.vy *= 0.96; }
+        local.x += local.vx * dt * 60;
+        local.y += local.vy * dt * 60;
+        wallCollision(local, car);
       }
-    });
-  }
-}
+    }
+    function wallCollision(p, car) {
+      const margin = 12;
+      const hw = car.w / 2, hh = car.h / 2;
+      const bounce = CFG.BOUNCE_WALL;
 
-// ══════════════════════════════════
-// GAME LOOP PRINCIPAL (rAF = 60fps)
-// ══════════════════════════════════
-let lastTs=null;
-function gameLoop(ts){
-  rafId=requestAnimationFrame(gameLoop);
-  if(!lastTs)lastTs=ts;
-  const dt=Math.min((ts-lastTs)/1000,0.05); // cap a 50ms para evitar spiral
-  lastTs=ts;
+      if (p.x - hw < margin) {
+        p.x = margin + hw;
+        p.vx = Math.abs(p.vx) * bounce;
+      }
+      if (p.x + hw > ARENA_W - margin) {
+        p.x = ARENA_W - margin - hw;
+        p.vx = -Math.abs(p.vx) * bounce;
+      }
+      if (p.y - hh < margin) {
+        p.y = margin + hh;
+        p.vy = Math.abs(p.vy) * bounce;
+      }
+      if (p.y + hh > ARENA_H - margin) {
+        p.y = ARENA_H - margin - hh;
+        p.vy = -Math.abs(p.vy) * bounce;
+      }
+    }
 
-  physicsStep(dt);
-  interpolateRemotes(dt);
+    // ── SAT AABB (aproximado para rectángulos rotados) ──
+    // Usamos los 4 vértices del auto y proyección sobre los ejes del otro
+    function getCorners(p, car) {
+      const hw = car.w / 2, hh = car.h / 2;
+      const cos = Math.cos(p.angle), sin = Math.sin(p.angle);
+      return [
+        { x: p.x + cos * (-hw) - sin * (-hh), y: p.y + sin * (-hw) + cos * (-hh) },
+        { x: p.x + cos * (hw) - sin * (-hh), y: p.y + sin * (hw) + cos * (-hh) },
+        { x: p.x + cos * (hw) - sin * (hh), y: p.y + sin * (hw) + cos * (hh) },
+        { x: p.x + cos * (-hw) - sin * (hh), y: p.y + sin * (-hw) + cos * (hh) },
+      ];
+    }
 
-  // Red: subir solo a 20hz
-  if(ts-lastNetSend>=1000/NET_HZ){
-    netUpload();
-    lastNetSend=ts;
-  }
+    function projectCorners(corners, axis) {
+      let min = Infinity, max = -Infinity;
+      corners.forEach(c => {
+        const p = c.x * axis.x + c.y * axis.y;
+        if (p < min) min = p;
+        if (p > max) max = p;
+      });
+      return { min, max };
+    }
 
-  renderFrame();
-}
+    function resolveCarCollision(a, carA, b, carB, bPid) {
+      const cornersA = getCorners(a, carA);
+      const cornersB = getCorners(b, carB);
 
-// ══════════════════════════════════
-// RENDER
-// ══════════════════════════════════
-function renderFrame(){
-  if(!ctx)return;
+      // Ejes a testear: normales de los 4 lados (2 por coche = 4 ejes únicos)
+      const axes = [
+        { x: Math.cos(a.angle), y: Math.sin(a.angle) },
+        { x: -Math.sin(a.angle), y: Math.cos(a.angle) },
+        { x: Math.cos(b.angle), y: Math.sin(b.angle) },
+        { x: -Math.sin(b.angle), y: Math.cos(b.angle) },
+      ];
 
-  // fondo arena
-  ctx.fillStyle='#2a2a35';
-  ctx.fillRect(0,0,ARENA_W,ARENA_H);
+      let minOverlap = Infinity;
+      let minAxis = null;
 
-  // grilla de asfalto
-  ctx.strokeStyle='rgba(255,255,255,.03)';
-  ctx.lineWidth=1;
-  for(let x=0;x<ARENA_W;x+=50){
-    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,ARENA_H);ctx.stroke();
-  }
-  for(let y=0;y<ARENA_H;y+=50){
-    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(ARENA_W,y);ctx.stroke();
-  }
+      for (const ax of axes) {
+        const pA = projectCorners(cornersA, ax);
+        const pB = projectCorners(cornersB, ax);
+        const overlap = Math.min(pA.max, pB.max) - Math.max(pA.min, pB.min);
+        if (overlap <= 0) return; // separados, no hay colisión
+        if (overlap < minOverlap) {
+          minOverlap = overlap;
+          minAxis = ax;
+        }
+      }
 
-  // borde arena
-  ctx.strokeStyle='#f5c40044';
-  ctx.lineWidth=10;
-  ctx.strokeRect(10,10,ARENA_W-20,ARENA_H-20);
-  ctx.strokeStyle='#f5c400';
-  ctx.lineWidth=2;
-  ctx.strokeRect(10,10,ARENA_W-20,ARENA_H-20);
+      // Hay colisión — resolver
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const dot = dx * minAxis.x + dy * minAxis.y;
+      const nx = dot < 0 ? -minAxis.x : -minAxis.x * -1;
+      const ny = dot < 0 ? -minAxis.y : -minAxis.y * -1;
 
-  // círculo central
-  ctx.strokeStyle='rgba(255,255,255,.07)';
-  ctx.lineWidth=2;
-  ctx.beginPath();
-  ctx.arc(ARENA_W/2,ARENA_H/2,80,0,Math.PI*2);
-  ctx.stroke();
+      // Separar (mover A)
+      const massA = carA.mass, massB = carB.mass;
+      const totalMass = massA + massB;
+      a.x -= nx * minOverlap * (massB / totalMass);
+      a.y -= ny * minOverlap * (massB / totalMass);
 
-  // remotos interpolados
-  Object.entries(renderedRemotes).forEach(([pid,p])=>{
-    if(!p.alive)return;
-    const car=carDef(p.carId);
-    drawCar(ctx,car,p.color,p.x,p.y,p.angle);
-    drawNameTag(ctx,p,car);
-    drawHPBar(ctx,p,car);
-  });
+      // Velocidad relativa para calcular daño e impulso
+      const rvx = a.vx - (b.vx || 0);
+      const rvy = a.vy - (b.vy || 0);
+      const relSpeed = Math.abs(rvx * nx + rvy * ny);
 
-  // jugador local
-  if(local.alive){
-    const car=carDef(local.carId);
-    drawCar(ctx,car,local.color,local.x,local.y,local.angle);
-    drawNameTag(ctx,local,car,true);
-    drawHPBar(ctx,local,car);
-  }
+      if (relSpeed < 0.5) return; // colisión muy lenta, ignorar
 
-  // HUD
-  renderHUD();
-}
+      // Impulso físico
+      const e = 0.6; // restitución
+      const j = (1 + e) * relSpeed / (1 / massA + 1 / massB);
+      const impx = nx * j;
+      const impy = ny * j;
 
-function drawNameTag(ctx,p,car,isMe=false){
-  ctx.save();
-  ctx.font=`bold 10px 'Exo 2',sans-serif`;
-  ctx.textAlign='center';
-  const nw=ctx.measureText(p.name).width+10;
-  const ny=p.y+car.h/2+6;
-  ctx.fillStyle='rgba(0,0,0,.55)';
-  ctx.fillRect(p.x-nw/2,ny,nw,13);
-  ctx.fillStyle=isMe?'#f5c400':'#fff';
-  ctx.fillText(p.name,p.x,ny+10);
-  ctx.restore();
-}
+      // aplicar impulso a los dos lados del choque
+      a.vx -= impx / massA;
+      a.vy -= impy / massA;
+      // empujar al remoto también (localmente, para visualización)
+      if (remoteTargets[bPid]) {
+        remoteTargets[bPid].vx = (remoteTargets[bPid].vx || 0) + impx / massB;
+        remoteTargets[bPid].vy = (remoteTargets[bPid].vy || 0) + impy / massB;
+      }
 
-function drawHPBar(ctx,p,car){
-  const bw=car.w+8;
-  const by=p.y-car.h/2-10;
-  const ratio=(p.hp||0)/MAX_HP;
-  const col=ratio>.5?'#2dc653':ratio>.25?'#f5c400':'#c1121f';
-  ctx.fillStyle='rgba(0,0,0,.5)';
-  ctx.fillRect(p.x-bw/2,by,bw,5);
-  ctx.fillStyle=col;
-  ctx.fillRect(p.x-bw/2,by,bw*ratio,5);
-}
+      // Daño al otro (subir a Firebase solo si el daño es significativo)
+      const dmg = Math.min(Math.round(relSpeed * CFG.DMG_FACTOR), CFG.DMG_MAX);
+      if (dmg >= CFG.DMG_MIN) {
+        const curHp = typeof remoteTargets[bPid]?.hp === 'number' ? remoteTargets[bPid].hp : MAX_HP;
+        const newHp = Math.max(0, curHp - dmg);
+        // actualizar local inmediatamente para que no aplique daño doble
+        remoteTargets[bPid].hp = newHp;
+        remoteTargets[bPid].alive = newHp > 0;
+        update(ref(db), {
+          [`rooms/${roomCode}/players/${bPid}/hp`]: newHp,
+          [`rooms/${roomCode}/players/${bPid}/alive`]: newHp > 0,
+        });
+      }
+    }
 
-function renderHUD(){
-  const hud=document.getElementById('hud');
-  hud.innerHTML='';
+    function resolveHostCollision(a, carA, b, carB) {
+      const cornersA = getCorners(a, carA);
+      const cornersB = getCorners(b, carB);
+      const axes = [
+        { x: Math.cos(a.angle), y: Math.sin(a.angle) },
+        { x: -Math.sin(a.angle), y: Math.cos(a.angle) },
+        { x: Math.cos(b.angle), y: Math.sin(b.angle) },
+        { x: -Math.sin(b.angle), y: Math.cos(b.angle) },
+      ];
+      let minOverlap = Infinity, minAxis = null;
+      for (const ax of axes) {
+        const pA = projectCorners(cornersA, ax);
+        const pB = projectCorners(cornersB, ax);
+        const overlap = Math.min(pA.max, pB.max) - Math.max(pA.min, pB.min);
+        if (overlap <= 0) return;
+        if (overlap < minOverlap) { minOverlap = overlap; minAxis = ax; }
+      }
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const dot = dx * minAxis.x + dy * minAxis.y;
+      const nx = dot < 0 ? -minAxis.x : minAxis.x;
+      const ny = dot < 0 ? -minAxis.y : minAxis.y;
+      const totalMass = carA.mass + carB.mass;
+      a.x -= nx * minOverlap * (carB.mass / totalMass);
+      a.y -= ny * minOverlap * (carB.mass / totalMass);
+      b.x += nx * minOverlap * (carA.mass / totalMass);
+      b.y += ny * minOverlap * (carA.mass / totalMass);
 
-  // MI HUD (izquierda)
-  const me=local;
-  if(me){
-    const ratio=(me.hp||0)/MAX_HP;
-    const col=ratio>.5?'#2dc653':ratio>.25?'#f5c400':'#c1121f';
-    const div=document.createElement('div');
-    div.className='hud-block';
-    div.innerHTML=`
+      const rvx = a.vx - b.vx, rvy = a.vy - b.vy;
+      const relSpeed = Math.abs(rvx * nx + rvy * ny);
+      if (relSpeed < 0.5) return;
+
+      const e = CFG.BOUNCE_CAR;
+      const j = (1 + e) * relSpeed / (1 / carA.mass + 1 / carB.mass);
+      a.vx -= nx * (j / carA.mass);
+      a.vy -= ny * (j / carA.mass);
+      b.vx += nx * (j / carB.mass);
+      b.vy += ny * (j / carB.mass);
+
+      const dmg = Math.min(Math.round(relSpeed * CFG.DMG_FACTOR), CFG.DMG_MAX);
+      if (dmg >= CFG.DMG_MIN) {
+        a.hp = Math.max(0, (a.hp || MAX_HP) - dmg);
+        b.hp = Math.max(0, (b.hp || MAX_HP) - dmg);
+        a.alive = a.hp > 0;
+        b.alive = b.hp > 0;
+      }
+    }
+
+    // ══════════════════════════════════
+    // INTERPOLACIÓN DE REMOTOS
+    // ══════════════════════════════════
+    let renderedRemotes = {};
+
+    function interpolateRemotes(dt) {
+      Object.entries(remoteTargets).forEach(([pid, target]) => {
+        if (!renderedRemotes[pid]) renderedRemotes[pid] = { ...target };
+        const r = renderedRemotes[pid];
+        const t = Math.min(INTERP * dt * 60, 1);
+        r.x = lerp(r.x, target.x, t);
+        r.y = lerp(r.y, target.y, t);
+        r.angle = lerpAngle(r.angle, target.angle, t);
+        r.hp = target.hp;
+        r.alive = target.alive;
+        r.color = target.color;
+        r.carId = target.carId;
+        r.name = target.name;
+      });
+      // limpiar desconectados
+      Object.keys(renderedRemotes).forEach(pid => {
+        if (!remoteTargets[pid]) delete renderedRemotes[pid];
+      });
+    }
+
+    // ══════════════════════════════════
+    // SUBIR POSICIÓN A FIREBASE (20hz)
+    // ══════════════════════════════════
+    function netUpload() {
+      if (isHost) {
+        // el host sube el estado completo de todos los jugadores
+        if (!firebaseState.players) return;
+        const updates = {};
+        Object.entries(firebaseState.players).forEach(([pid, p]) => {
+          updates[`rooms/${roomCode}/players/${pid}/x`] = p.x;
+          updates[`rooms/${roomCode}/players/${pid}/y`] = p.y;
+          updates[`rooms/${roomCode}/players/${pid}/angle`] = p.angle;
+          updates[`rooms/${roomCode}/players/${pid}/vx`] = p.vx;
+          updates[`rooms/${roomCode}/players/${pid}/vy`] = p.vy;
+          updates[`rooms/${roomCode}/players/${pid}/hp`] = p.hp;
+          updates[`rooms/${roomCode}/players/${pid}/alive`] = p.alive;
+        });
+        update(ref(db), updates);
+      } else {
+        // los clientes solo suben sus inputs
+        update(ref(db), {
+          [`rooms/${roomCode}/players/${myId}/input`]: {
+            up: keys['ArrowUp'] || keys['w'] || keys['W'] || false,
+            down: keys['ArrowDown'] || keys['s'] || keys['S'] || false,
+            left: keys['ArrowLeft'] || keys['a'] || keys['A'] || false,
+            right: keys['ArrowRight'] || keys['d'] || keys['D'] || false,
+          }
+        });
+      }
+    }
+
+    // ══════════════════════════════════
+    // GAME LOOP PRINCIPAL (rAF = 60fps)
+    // ══════════════════════════════════
+    let lastTs = null;
+    function gameLoop(ts) {
+      rafId = requestAnimationFrame(gameLoop);
+      if (!lastTs) lastTs = ts;
+      const dt = Math.min((ts - lastTs) / 1000, 0.05); // cap a 50ms para evitar spiral
+      lastTs = ts;
+
+      physicsStep(dt);
+      interpolateRemotes(dt);
+
+      // Red: subir solo a 20hz
+      if (ts - lastNetSend >= 1000 / NET_HZ) {
+        netUpload();
+        lastNetSend = ts;
+      }
+
+      renderFrame();
+    }
+
+    // ══════════════════════════════════
+    // RENDER
+    // ══════════════════════════════════
+    function renderFrame() {
+      if (!ctx) return;
+
+      // fondo arena
+      ctx.fillStyle = '#2a2a35';
+      ctx.fillRect(0, 0, ARENA_W, ARENA_H);
+
+      // grilla de asfalto
+      ctx.strokeStyle = 'rgba(255,255,255,.03)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < ARENA_W; x += 50) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ARENA_H); ctx.stroke();
+      }
+      for (let y = 0; y < ARENA_H; y += 50) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(ARENA_W, y); ctx.stroke();
+      }
+
+      // borde arena
+      ctx.strokeStyle = '#f5c40044';
+      ctx.lineWidth = 10;
+      ctx.strokeRect(10, 10, ARENA_W - 20, ARENA_H - 20);
+      ctx.strokeStyle = '#f5c400';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(10, 10, ARENA_W - 20, ARENA_H - 20);
+
+      // círculo central
+      ctx.strokeStyle = 'rgba(255,255,255,.07)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(ARENA_W / 2, ARENA_H / 2, 80, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // remotos interpolados
+      Object.entries(renderedRemotes).forEach(([pid, p]) => {
+        if (!p.alive) return;
+        const car = carDef(p.carId);
+        drawCar(ctx, car, p.color, p.x, p.y, p.angle);
+        drawNameTag(ctx, p, car);
+        drawHPBar(ctx, p, car);
+      });
+
+      // jugador local
+      if (local.alive) {
+        const car = carDef(local.carId);
+        drawCar(ctx, car, local.color, local.x, local.y, local.angle);
+        drawNameTag(ctx, local, car, true);
+        drawHPBar(ctx, local, car);
+      }
+
+      // HUD
+      renderHUD();
+    }
+
+    function drawNameTag(ctx, p, car, isMe = false) {
+      ctx.save();
+      ctx.font = `bold 10px 'Exo 2',sans-serif`;
+      ctx.textAlign = 'center';
+      const nw = ctx.measureText(p.name).width + 10;
+      const ny = p.y + car.h / 2 + 6;
+      ctx.fillStyle = 'rgba(0,0,0,.55)';
+      ctx.fillRect(p.x - nw / 2, ny, nw, 13);
+      ctx.fillStyle = isMe ? '#f5c400' : '#fff';
+      ctx.fillText(p.name, p.x, ny + 10);
+      ctx.restore();
+    }
+
+    function drawHPBar(ctx, p, car) {
+      const bw = car.w + 8;
+      const by = p.y - car.h / 2 - 10;
+      const ratio = (p.hp || 0) / MAX_HP;
+      const col = ratio > .5 ? '#2dc653' : ratio > .25 ? '#f5c400' : '#c1121f';
+      ctx.fillStyle = 'rgba(0,0,0,.5)';
+      ctx.fillRect(p.x - bw / 2, by, bw, 5);
+      ctx.fillStyle = col;
+      ctx.fillRect(p.x - bw / 2, by, bw * ratio, 5);
+    }
+
+    function renderHUD() {
+      const hud = document.getElementById('hud');
+      hud.innerHTML = '';
+
+      // MI HUD (izquierda)
+      const me = local;
+      if (me) {
+        const ratio = (me.hp || 0) / MAX_HP;
+        const col = ratio > .5 ? '#2dc653' : ratio > .25 ? '#f5c400' : '#c1121f';
+        const div = document.createElement('div');
+        div.className = 'hud-block';
+        div.innerHTML = `
       <div class="hud-name" style="color:${me.color}">${me.name}</div>
-      <div class="hbar-bg"><div class="hbar-fill" style="width:${ratio*100}%;background:${col}"></div></div>
+      <div class="hbar-bg"><div class="hbar-fill" style="width:${ratio * 100}%;background:${col}"></div></div>
     `;
-    hud.appendChild(div);
-  }
+        hud.appendChild(div);
+      }
 
-  // RIVALES (derecha)
-  const right=document.createElement('div');
-  right.style.cssText='display:flex;flex-direction:column;gap:5px;align-items:flex-end';
-  Object.values(renderedRemotes).forEach(p=>{
-    if(!p.alive)return;
-    const ratio=(p.hp||0)/MAX_HP;
-    const col=ratio>.5?'#2dc653':ratio>.25?'#f5c400':'#c1121f';
-    const div=document.createElement('div');
-    div.className='hud-block';
-    div.style.alignItems='flex-end';
-    div.innerHTML=`
+      // RIVALES (derecha)
+      const right = document.createElement('div');
+      right.style.cssText = 'display:flex;flex-direction:column;gap:5px;align-items:flex-end';
+      Object.values(renderedRemotes).forEach(p => {
+        if (!p.alive) return;
+        const ratio = (p.hp || 0) / MAX_HP;
+        const col = ratio > .5 ? '#2dc653' : ratio > .25 ? '#f5c400' : '#c1121f';
+        const div = document.createElement('div');
+        div.className = 'hud-block';
+        div.style.alignItems = 'flex-end';
+        div.innerHTML = `
       <div class="hud-name" style="color:${p.color};text-align:right">${p.name}</div>
-      <div class="hbar-bg"><div class="hbar-fill" style="width:${ratio*100}%;background:${col}"></div></div>
+      <div class="hbar-bg"><div class="hbar-fill" style="width:${ratio * 100}%;background:${col}"></div></div>
     `;
-    right.appendChild(div);
-  });
-  hud.appendChild(right);
-}
+        right.appendChild(div);
+      });
+      hud.appendChild(right);
+    }
 
-// ══════════════════════════════════
-// VICTORIA
-// ══════════════════════════════════
-function checkVictory(room){
-  if(overlayShown)return;
-  const players=room.players||{};
-  const total=Object.keys(players).length;
-  if(total<2)return;
-  const alive=Object.values(players).filter(p=>p.alive);
-  if(alive.length<=1){
-    if(isHost) update(roomRef,{status:'ended',winner:alive[0]?.name||'?'});
-  }
-}
+    // ══════════════════════════════════
+    // VICTORIA
+    // ══════════════════════════════════
+    function checkVictory(room) {
+      if (overlayShown) return;
+      const players = room.players || {};
+      const total = Object.keys(players).length;
+      if (total < 2) return;
+      const alive = Object.values(players).filter(p => p.alive);
+      if (alive.length <= 1) {
+        if (isHost) update(roomRef, { status: 'ended', winner: alive[0]?.name || '?' });
+      }
+    }
 
-function showOverlay(room){
-  if(overlayShown)return;
-  overlayShown=true;
-  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+    function showOverlay(room) {
+      if (overlayShown) return;
+      overlayShown = true;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
 
-  const myAlive=firebaseState.players?.[myId]?.alive;
-  const winner=room.winner||'?';
-  document.getElementById('ot').textContent=myAlive?'🏆 ¡GANASTE!':winner+' gana';
-  document.getElementById('os').textContent=myAlive?'Fuiste el último en pie 🔥':'Te eliminaron';
-  document.getElementById('overlay').classList.add('show');
-}
+      const myAlive = firebaseState.players?.[myId]?.alive;
+      const winner = room.winner || '?';
+      document.getElementById('ot').textContent = myAlive ? '🏆 ¡GANASTE!' : winner + ' gana';
+      document.getElementById('os').textContent = myAlive ? 'Fuiste el último en pie 🔥' : 'Te eliminaron';
+      document.getElementById('overlay').classList.add('show');
+    }
 
-// ══════════════════════════════════
-// SALIR / REINICIAR
-// ══════════════════════════════════
-async function leaveRoom(){
-  if(stateListener&&roomRef) off(roomRef,'value',stateListener);
-  if(stateRef) await remove(stateRef).catch(()=>{});
-  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
-  if(window._kd) document.removeEventListener('keydown',window._kd);
-  if(window._ku) document.removeEventListener('keyup',window._ku);
-  roomCode=null;roomRef=null;stateRef=null;stateListener=null;
-  local={};remoteTargets={};renderedRemotes={};firebaseState={};
-  overlayShown=false;lastTs=null;
-  document.getElementById('overlay').classList.remove('show');
-  showScreen('screen-lobby');
-}
+    // ══════════════════════════════════
+    // SALIR / REINICIAR
+    // ══════════════════════════════════
+    async function leaveRoom() {
+      if (stateListener && roomRef) off(roomRef, 'value', stateListener);
+      if (stateRef) await remove(stateRef).catch(() => { });
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      if (window._kd) document.removeEventListener('keydown', window._kd);
+      if (window._ku) document.removeEventListener('keyup', window._ku);
+      roomCode = null; roomRef = null; stateRef = null; stateListener = null;
+      local = {}; remoteTargets = {}; renderedRemotes = {}; firebaseState = {};
+      overlayShown = false; lastTs = null;
+      document.getElementById('overlay').classList.remove('show');
+      showScreen('screen-lobby');
+    }
 
-async function playAgain(){
-  document.getElementById('overlay').classList.remove('show');
-  overlayShown=false;lastTs=null;
-  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
-  local={};remoteTargets={};renderedRemotes={};
+    async function playAgain() {
+      document.getElementById('overlay').classList.remove('show');
+      overlayShown = false; lastTs = null;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      local = {}; remoteTargets = {}; renderedRemotes = {};
 
-  if(isHost){
-    const snap=await get(ref(db,`rooms/${roomCode}/players`));
-    if(!snap.exists())return;
-    const pids=Object.keys(snap.val());
-    const updates={[`rooms/${roomCode}/status`]:'waiting'};
-    pids.forEach(pid=>{
-      updates[`rooms/${roomCode}/players/${pid}/hp`]=MAX_HP;
-      updates[`rooms/${roomCode}/players/${pid}/alive`]=true;
-    });
-    await update(ref(db),updates);
-  }
-  showScreen('screen-waiting');
-}
+      if (isHost) {
+        const snap = await get(ref(db, `rooms/${roomCode}/players`));
+        if (!snap.exists()) return;
+        const pids = Object.keys(snap.val());
+        const updates = { [`rooms/${roomCode}/status`]: 'waiting' };
+        pids.forEach(pid => {
+          updates[`rooms/${roomCode}/players/${pid}/hp`] = MAX_HP;
+          updates[`rooms/${roomCode}/players/${pid}/alive`] = true;
+        });
+        await update(ref(db), updates);
+      }
+      showScreen('screen-waiting');
+    }
 
-// ══════════════════════════════════
-// EVENTOS UI
-// ══════════════════════════════════
-document.getElementById('btn-create').addEventListener('click',createRoom);
-document.getElementById('btn-join').addEventListener('click',joinRoom);
-document.getElementById('btn-leave').addEventListener('click',leaveRoom);
-document.getElementById('btn-back').addEventListener('click',leaveRoom);
-document.getElementById('btn-again').addEventListener('click',playAgain);
-document.getElementById('btn-start').addEventListener('click',()=>{if(isHost)hostStart();});
-document.getElementById('iname').addEventListener('keydown',e=>{if(e.key==='Enter')createRoom();});
-document.getElementById('icode').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});
-document.getElementById('icode').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase();});
+    // ══════════════════════════════════
+    // EVENTOS UI
+    // ══════════════════════════════════
+    document.getElementById('btn-create').addEventListener('click', createRoom);
+    document.getElementById('btn-join').addEventListener('click', joinRoom);
+    document.getElementById('btn-leave').addEventListener('click', leaveRoom);
+    document.getElementById('btn-back').addEventListener('click', leaveRoom);
+    document.getElementById('btn-again').addEventListener('click', playAgain);
+    document.getElementById('btn-start').addEventListener('click', () => { if (isHost) hostStart(); });
+    document.getElementById('iname').addEventListener('keydown', e => { if (e.key === 'Enter') createRoom(); });
+    document.getElementById('icode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
+    document.getElementById('icode').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase(); });
 
-// INIT
-buildCarPicker();
-buildColorPicker();
-</script>
+    // INIT
+    buildCarPicker();
+    buildColorPicker();
+  </script>
 </body>
+
 </html>
