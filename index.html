@@ -1002,7 +1002,6 @@
     // FÍSICA LOCAL — modelo de auto
     // ══════════════════════════════════
     function physicsStep(dt){
-      console.log('isHost:', isHost, 'players:', firebaseState.players ? Object.keys(firebaseState.players).length : 'null');
       if (isHost) {
         // el host simula TODOS los jugadores
         if (!firebaseState.players) return;
@@ -1072,6 +1071,18 @@
             if (!a.alive || !b.alive) continue;
             resolveHostCollision(a, carDef(a.carId), b, carDef(b.carId));
           }
+        }
+
+        // sincronizar local con el resultado de la física del host
+        const me = firebaseState.players[myId];
+        if (me) {
+          local.x = me.x;
+          local.y = me.y;
+          local.angle = me.angle;
+          local.vx = me.vx;
+          local.vy = me.vy;
+          local.hp = me.hp;
+          local.alive = me.alive;
         }
 
       } else {
