@@ -494,25 +494,40 @@ function listenRoom(){
     if(room.status==='playing'&&!rafId){
       initGame(room);
     }
-    if(room.status==='playing'){
-      // actualizar targets de interpolación para remotos
-      const players=room.players||{};
-      Object.entries(players).forEach(([pid,p])=>{
-        if(pid===myId)return;
-        if(!remoteTargets[pid]) remoteTargets[pid]={...p};
-        else{
-          remoteTargets[pid].x=p.x;
-          remoteTargets[pid].y=p.y;
-          remoteTargets[pid].angle=p.angle;
-          remoteTargets[pid].hp=p.hp;
-          remoteTargets[pid].alive=p.alive;
-          remoteTargets[pid].color=p.color;
-          remoteTargets[pid].carId=p.carId;
-          remoteTargets[pid].name=p.name;
-        }
-      });
-      checkVictory(room);
+    if(room.status === 'playing'){
+  const players = room.players || {};
+  Object.entries(players).forEach(([pid, p]) => {
+    if(pid === myId){
+      // sincronizar el estado local con lo que dice el host
+      if(!isHost){
+        if(!remoteTargets[myId]) remoteTargets[myId] = {...p};
+        remoteTargets[myId] = {...p};
+        // corrección suave de posición (el cliente predijo localmente)
+        local.x     = lerp(local.x,     p.x,     0.3);
+        local.y     = lerp(local.y,     p.y,     0.3);
+        local.angle = lerpAngle(local.angle, p.angle, 0.3);
+        local.hp    = p.hp;
+        local.alive = p.alive;
+      } else {
+        // el host actualiza firebaseState directamente en physicsStep
+        firebaseState.players = players;
+      }
+    } else {
+      if(!remoteTargets[pid]) remoteTargets[pid] = {...p};
+      else {
+        remoteTargets[pid].x     = p.x;
+        remoteTargets[pid].y     = p.y;
+        remoteTargets[pid].angle = p.angle;
+        remoteTargets[pid].hp    = p.hp;
+        remoteTargets[pid].alive = p.alive;
+        remoteTargets[pid].color = p.color;
+        remoteTargets[pid].carId = p.carId;
+        remoteTargets[pid].name  = p.name;
+      }
     }
+  });
+  checkVictory(room);
+}
     if(room.status==='ended'&&!overlayShown){
       showOverlay(room);
     }
@@ -642,74 +657,117 @@ function initInput(){
 // FÍSICA LOCAL — modelo de auto
 // ══════════════════════════════════
 function physicsStep(dt){
-  if(!local.alive)return;
-  const car=carDef(local.carId);
+  if(isHost){
+    // el host simula TODOS los jugadores
+    const players = firebaseState.players;
+    if(!players) return;
 
-  const up   =keys['ArrowUp']  ||keys['w']||keys['W'];
-  const down =keys['ArrowDown']||keys['s']||keys['S'];
-  const left =keys['ArrowLeft']||keys['a']||keys['A'];
-  const right=keys['ArrowRight']||keys['d']||keys['D'];
+    Object.entries(players).forEach(([pid, p]) => {
+      if(!p.alive) return;
+      const car = carDef(p.carId);
 
-  const speed=Math.sqrt(local.vx**2+local.vy**2);
+      // leer input: el host usa keys[] para sí mismo, Firebase input para el resto
+      let up, down, left, right;
+      if(pid === myId){
+        up    = keys['ArrowUp']   || keys['w'] || keys['W'];
+        down  = keys['ArrowDown'] || keys['s'] || keys['S'];
+        left  = keys['ArrowLeft'] || keys['a'] || keys['A'];
+        right = keys['ArrowRight']|| keys['d'] || keys['D'];
+      } else {
+        const inp = p.input || {};
+        up = inp.up; down = inp.down; left = inp.left; right = inp.right;
+      }
 
-  // Steer: más fácil a bajas velocidades, con límite de velocidad
-  if(speed>0.3){
-    const steerFactor=Math.min(speed/car.topspeed,1);
-    const turnRate=0.065*steerFactor*(car.topspeed/8);
-    // detectar si va hacia atrás para invertir el giro
-    const goingForward = (local.vx*Math.sin(local.angle) - local.vy*Math.cos(local.angle)) >= 0;
-    const dir = goingForward ? 1 : -1;
-    if(left)  local.angle -= turnRate * dir;
-    if(right) local.angle += turnRate * dir;
+      let {x, y, angle, vx=0, vy=0, hp} = p;
+
+      const speed = Math.sqrt(vx**2 + vy**2);
+      if(speed > 0.3){
+        const steerFactor = Math.min(speed / car.topspeed, 1);
+        const turnRate = 0.065 * steerFactor * (car.topspeed / 8);
+        const goingForward = (vx * Math.sin(angle) - vy * Math.cos(angle)) >= 0;
+        const dir = goingForward ? 1 : -1;
+        if(left)  angle -= turnRate * dir;
+        if(right) angle += turnRate * dir;
+      }
+
+      if(up){
+        vx += Math.sin(angle) * car.accel * dt * 60;
+        vy -= Math.cos(angle) * car.accel * dt * 60;
+      }
+      if(down){
+        vx -= Math.sin(angle) * car.brake * 0.6 * dt * 60;
+        vy += Math.cos(angle) * car.brake * 0.6 * dt * 60;
+      }
+
+      const spd2 = Math.sqrt(vx**2 + vy**2);
+      if(spd2 > car.topspeed){ vx=(vx/spd2)*car.topspeed; vy=(vy/spd2)*car.topspeed; }
+
+      const fwd  =  Math.sin(angle)*vx - Math.cos(angle)*vy;
+      const lat  =  Math.cos(angle)*vx + Math.sin(angle)*vy;
+      const newLat = lat * car.grip;
+      vx = Math.sin(angle)*fwd + Math.cos(angle)*newLat;
+      vy = -Math.cos(angle)*fwd + Math.sin(angle)*newLat;
+
+      if(!up && !down){ vx *= 0.96; vy *= 0.96; }
+
+      x += vx * dt * 60;
+      y += vy * dt * 60;
+
+      // escribir de vuelta al estado
+      players[pid] = { ...p, x, y, angle, vx, vy, hp };
+      wallCollision(players[pid], car);
+    });
+
+    // colisiones entre todos los pares
+    const pids = Object.keys(players).filter(pid => players[pid].alive);
+    for(let i = 0; i < pids.length; i++){
+      for(let j = i+1; j < pids.length; j++){
+        const a = players[pids[i]], b = players[pids[j]];
+        if(!a.alive || !b.alive) continue;
+        resolveHostCollision(a, carDef(a.carId), b, carDef(b.carId));
+      }
+    }
+
+  } else {
+    // clientes: solo mueven su auto localmente para feedback visual inmediato
+    // la posición "oficial" viene del host vía Firebase
+    if(!local.alive) return;
+    const car = carDef(local.carId);
+    const up    = keys['ArrowUp']   || keys['w'] || keys['W'];
+    const down  = keys['ArrowDown'] || keys['s'] || keys['S'];
+    const left  = keys['ArrowLeft'] || keys['a'] || keys['A'];
+    const right = keys['ArrowRight']|| keys['d'] || keys['D'];
+
+    const speed = Math.sqrt(local.vx**2 + local.vy**2);
+    if(speed > 0.3){
+      const steerFactor = Math.min(speed / car.topspeed, 1);
+      const turnRate = 0.065 * steerFactor * (car.topspeed / 8);
+      const goingForward = (local.vx*Math.sin(local.angle) - local.vy*Math.cos(local.angle)) >= 0;
+      const dir = goingForward ? 1 : -1;
+      if(left)  local.angle -= turnRate * dir;
+      if(right) local.angle += turnRate * dir;
+    }
+    if(up){
+      local.vx += Math.sin(local.angle)*car.accel*dt*60;
+      local.vy -= Math.cos(local.angle)*car.accel*dt*60;
+    }
+    if(down){
+      local.vx -= Math.sin(local.angle)*car.brake*0.6*dt*60;
+      local.vy += Math.cos(local.angle)*car.brake*0.6*dt*60;
+    }
+    const spd2 = Math.sqrt(local.vx**2+local.vy**2);
+    if(spd2>car.topspeed){local.vx=(local.vx/spd2)*car.topspeed;local.vy=(local.vy/spd2)*car.topspeed;}
+    const fwd  =  Math.sin(local.angle)*local.vx - Math.cos(local.angle)*local.vy;
+    const lat  =  Math.cos(local.angle)*local.vx + Math.sin(local.angle)*local.vy;
+    const newLat = lat*car.grip;
+    local.vx = Math.sin(local.angle)*fwd + Math.cos(local.angle)*newLat;
+    local.vy = -Math.cos(local.angle)*fwd + Math.sin(local.angle)*newLat;
+    if(!up&&!down){local.vx*=0.96;local.vy*=0.96;}
+    local.x += local.vx*dt*60;
+    local.y += local.vy*dt*60;
+    wallCollision(local, car);
   }
-
-  // Aceleración
-  if(up){
-    local.vx+=Math.sin(local.angle)*car.accel*dt*60;
-    local.vy-=Math.cos(local.angle)*car.accel*dt*60;
-  }
-  if(down){
-    local.vx-=Math.sin(local.angle)*car.brake*0.6*dt*60;
-    local.vy+=Math.cos(local.angle)*car.brake*0.6*dt*60;
-  }
-
-  // Límite de velocidad
-  const spd2=Math.sqrt(local.vx**2+local.vy**2);
-  if(spd2>car.topspeed){
-    local.vx=(local.vx/spd2)*car.topspeed;
-    local.vy=(local.vy/spd2)*car.topspeed;
-  }
-
-  // Grip lateral (simula adherencia)
-  // Velocidad en eje del auto
-  const fwd  = Math.sin(local.angle)*local.vx - Math.cos(local.angle)*local.vy;
-  const lat  = Math.cos(local.angle)*local.vx + Math.sin(local.angle)*local.vy;
-  // Reducir componente lateral
-  const newLat=lat*car.grip;
-  local.vx=Math.sin(local.angle)*fwd + Math.cos(local.angle)*newLat;
-  local.vy=-Math.cos(local.angle)*fwd + Math.sin(local.angle)*newLat;
-
-  // Fricción general (frenar si no hay input)
-  if(!up&&!down){
-    local.vx*=0.96;
-    local.vy*=0.96;
-  }
-
-  // Mover
-  local.x+=local.vx*dt*60;
-  local.y+=local.vy*dt*60;
-
-  // ── COLISIÓN CON BORDES (rebote físico) ──
-  wallCollision(local,car);
-
-  // ── COLISIÓN CON OTROS AUTOS (SAT simplificado) ──
-  Object.entries(remoteTargets).forEach(([pid,other])=>{
-    if(!other.alive)return;
-    const otherCar=carDef(other.carId);
-    resolveCarCollision(local,car,other,otherCar,pid);
-  });
 }
-
 function wallCollision(p,car){
   const margin=12;
   const hw=car.w/2, hh=car.h/2;
@@ -831,6 +889,53 @@ function resolveCarCollision(a,carA,b,carB,bPid){
   }
 }
 
+function resolveHostCollision(a, carA, b, carB){
+  const cornersA = getCorners(a, carA);
+  const cornersB = getCorners(b, carB);
+  const axes = [
+    {x:Math.cos(a.angle), y:Math.sin(a.angle)},
+    {x:-Math.sin(a.angle),y:Math.cos(a.angle)},
+    {x:Math.cos(b.angle), y:Math.sin(b.angle)},
+    {x:-Math.sin(b.angle),y:Math.cos(b.angle)},
+  ];
+  let minOverlap = Infinity, minAxis = null;
+  for(const ax of axes){
+    const pA = projectCorners(cornersA, ax);
+    const pB = projectCorners(cornersB, ax);
+    const overlap = Math.min(pA.max,pB.max) - Math.max(pA.min,pB.min);
+    if(overlap <= 0) return;
+    if(overlap < minOverlap){ minOverlap = overlap; minAxis = ax; }
+  }
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const dot = dx*minAxis.x + dy*minAxis.y;
+  const nx = dot < 0 ? -minAxis.x : minAxis.x;
+  const ny = dot < 0 ? -minAxis.y : minAxis.y;
+  const totalMass = carA.mass + carB.mass;
+  a.x -= nx * minOverlap * (carB.mass/totalMass);
+  a.y -= ny * minOverlap * (carB.mass/totalMass);
+  b.x += nx * minOverlap * (carA.mass/totalMass);
+  b.y += ny * minOverlap * (carA.mass/totalMass);
+
+  const rvx = a.vx - b.vx, rvy = a.vy - b.vy;
+  const relSpeed = Math.abs(rvx*nx + rvy*ny);
+  if(relSpeed < 0.5) return;
+
+  const e = CFG.BOUNCE_CAR;
+  const j = (1+e)*relSpeed / (1/carA.mass + 1/carB.mass);
+  a.vx -= nx*(j/carA.mass);
+  a.vy -= ny*(j/carA.mass);
+  b.vx += nx*(j/carB.mass);
+  b.vy += ny*(j/carB.mass);
+
+  const dmg = Math.min(Math.round(relSpeed * CFG.DMG_FACTOR), CFG.DMG_MAX);
+  if(dmg >= CFG.DMG_MIN){
+    a.hp = Math.max(0, (a.hp||MAX_HP) - dmg);
+    b.hp = Math.max(0, (b.hp||MAX_HP) - dmg);
+    a.alive = a.hp > 0;
+    b.alive = b.hp > 0;
+  }
+}
+
 // ══════════════════════════════════
 // INTERPOLACIÓN DE REMOTOS
 // ══════════════════════════════════
@@ -860,19 +965,31 @@ function interpolateRemotes(dt){
 // SUBIR POSICIÓN A FIREBASE (20hz)
 // ══════════════════════════════════
 function netUpload(){
-  if(!local.alive&&local._deathSent)return;
-  const payload={
-    [`rooms/${roomCode}/players/${myId}/x`]:local.x,
-    [`rooms/${roomCode}/players/${myId}/y`]:local.y,
-    [`rooms/${roomCode}/players/${myId}/angle`]:local.angle,
-    [`rooms/${roomCode}/players/${myId}/vx`]:local.vx,
-    [`rooms/${roomCode}/players/${myId}/vy`]:local.vy,
-  };
-  if(!local.alive){
-    payload[`rooms/${roomCode}/players/${myId}/alive`]=false;
-    local._deathSent=true;
+  if(isHost){
+    // el host sube el estado completo de todos los jugadores
+    if(!firebaseState.players) return;
+    const updates = {};
+    Object.entries(firebaseState.players).forEach(([pid, p]) => {
+      updates[`rooms/${roomCode}/players/${pid}/x`]     = p.x;
+      updates[`rooms/${roomCode}/players/${pid}/y`]     = p.y;
+      updates[`rooms/${roomCode}/players/${pid}/angle`] = p.angle;
+      updates[`rooms/${roomCode}/players/${pid}/vx`]    = p.vx;
+      updates[`rooms/${roomCode}/players/${pid}/vy`]    = p.vy;
+      updates[`rooms/${roomCode}/players/${pid}/hp`]    = p.hp;
+      updates[`rooms/${roomCode}/players/${pid}/alive`] = p.alive;
+    });
+    update(ref(db), updates);
+  } else {
+    // los clientes solo suben sus inputs
+    update(ref(db), {
+      [`rooms/${roomCode}/players/${myId}/input`]: {
+        up:    keys['ArrowUp']   || keys['w'] || keys['W'] || false,
+        down:  keys['ArrowDown'] || keys['s'] || keys['S'] || false,
+        left:  keys['ArrowLeft'] || keys['a'] || keys['A'] || false,
+        right: keys['ArrowRight']|| keys['d'] || keys['D'] || false,
+      }
+    });
   }
-  update(ref(db),payload);
 }
 
 // ══════════════════════════════════
