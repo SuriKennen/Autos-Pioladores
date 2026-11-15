@@ -637,9 +637,12 @@
     let canvas, ctx;
     let keys = {};
     let rafId = null;
+    let hostTickInterval = null;
+    let lastHostTick = performance.now();
     let netTimer = null;
     let lastNetSend = 0;
     let overlayShown = false;
+    let recentHits = {}; // control de cooldown de impactos por jugador
 
     // ══════════════════════════════════
     // HELPERS
@@ -834,7 +837,7 @@
         // ⚠️ BUG FIX: el host NO sobreescribe su estado físico con datos de Firebase.
         // La física del host es autoritativa; solo actualizamos metadata (status/winner).
         // Si el juego todavía no arrancó, sí copiamos todo para inicializar.
-        if (isHost && room.status === 'playing' && rafId) {
+        if (room.status === 'playing' && rafId) {
           firebaseState.status = room.status;
           if (room.winner) firebaseState.winner = room.winner;
         } else {
@@ -850,58 +853,45 @@
         if (room.status === 'playing') {
           const players = room.players || {};
 
-          if (isHost) {
-            // HOST: solo lee inputs de clientes y detecta desconexiones.
-            // No toca posiciones — la física local es la única fuente de verdad.
-            const fbPids = new Set(Object.keys(players));
-            if (firebaseState.players) {
-              // Eliminar jugadores que se desconectaron
-              Object.keys(firebaseState.players).forEach(pid => {
-                if (!fbPids.has(pid)) {
-                  delete firebaseState.players[pid];
-                  delete remoteTargets[pid];
-                  delete renderedRemotes[pid];
-                }
-              });
+          // Actualizar datos de los demás jugadores y verificar si recibimos impactos
+          const fbPids = new Set(Object.keys(players));
+          Object.keys(remoteTargets).forEach(pid => {
+            if (!fbPids.has(pid)) {
+              delete remoteTargets[pid];
+              delete renderedRemotes[pid];
             }
-            // Leer inputs frescos de cada cliente
-            Object.entries(players).forEach(([pid, p]) => {
-              if (pid !== myId && firebaseState.players?.[pid]) {
-                firebaseState.players[pid].input = p.input || {};
-              }
-            });
+          });
 
-          } else {
-            // CLIENTE: recibir corrección del host para el propio auto,
-            // y actualizar posición de los demás jugadores.
-            Object.entries(players).forEach(([pid, p]) => {
-              if (pid === myId) {
-                // Guardar snapshot del host — la corrección se aplica
-                // suavemente cada frame en physicsStep (no aquí),
-                // para evitar jalones provocados por el timing de Firebase.
-                local._snap = {
-                  x: p.x, y: p.y, angle: p.angle,
-                  vx: p.vx ?? 0, vy: p.vy ?? 0
-                };
-                local.hp    = p.hp;
-                local.alive = p.alive;
-                // ⚠️ NO agregar myId a remoteTargets → evita dibujar
-                // el auto propio dos veces (desde local Y desde renderedRemotes)
-              } else {
-                if (!remoteTargets[pid]) remoteTargets[pid] = { ...p };
-                else {
-                  remoteTargets[pid].x = p.x;
-                  remoteTargets[pid].y = p.y;
-                  remoteTargets[pid].angle = p.angle;
-                  remoteTargets[pid].hp = p.hp;
-                  remoteTargets[pid].alive = p.alive;
-                  remoteTargets[pid].color = p.color;
-                  remoteTargets[pid].carId = p.carId;
-                  remoteTargets[pid].name = p.name;
+          Object.entries(players).forEach(([pid, p]) => {
+            if (pid === myId) {
+              // Si otro jugador nos impactó con trompa o cola, aplicar el impulso y daño
+              if (p.impact && p.impact.ts) {
+                if (!local._lastProcessedImpact || p.impact.ts > local._lastProcessedImpact) {
+                  local._lastProcessedImpact = p.impact.ts;
+                  local.vx = (local.vx || 0) + (p.impact.vx || 0);
+                  local.vy = (local.vy || 0) + (p.impact.vy || 0);
+                  if (typeof p.impact.dmg === 'number') {
+                    local.hp = Math.max(0, (local.hp ?? MAX_HP) - p.impact.dmg);
+                    local.alive = local.hp > 0;
+                  }
                 }
               }
-            });
-          }
+            } else {
+              if (!remoteTargets[pid]) remoteTargets[pid] = { ...p };
+              else {
+                remoteTargets[pid].x = p.x;
+                remoteTargets[pid].y = p.y;
+                remoteTargets[pid].angle = p.angle;
+                remoteTargets[pid].vx = p.vx;
+                remoteTargets[pid].vy = p.vy;
+                remoteTargets[pid].hp = p.hp;
+                remoteTargets[pid].alive = p.alive;
+                remoteTargets[pid].color = p.color;
+                remoteTargets[pid].carId = p.carId;
+                remoteTargets[pid].name = p.name;
+              }
+            }
+          });
 
           checkVictory(room);
         }
@@ -999,6 +989,10 @@
 
       initInput();
       lastNetSend = performance.now();
+      lastHostTick = performance.now();
+      if (hostTickInterval) clearInterval(hostTickInterval);
+      // Ejecutar a ~30ms para mantener vivo el auto en background si se cambia de pestaña
+      hostTickInterval = setInterval(runBackgroundHostTick, 33);
       rafId = requestAnimationFrame(gameLoop);
     }
 
@@ -1018,11 +1012,9 @@
       const kd = e => {
         if (keys[e.key]) return; // ignorar key-repeat
         keys[e.key] = true;
-        if (!isHost) netUploadInput(); // subir input inmediatamente al presionar
       };
       const ku = e => {
         keys[e.key] = false;
-        if (!isHost) netUploadInput(); // subir input inmediatamente al soltar
       };
       document.addEventListener('keydown', kd);
       document.addEventListener('keyup', ku);
@@ -1033,188 +1025,60 @@
       Object.entries(tmap).forEach(([id, k]) => {
         const el = document.getElementById(id);
         if (!el) return;
-        el.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true; if (!isHost) netUploadInput(); }, { passive: false });
-        el.addEventListener('touchend', e => { e.preventDefault(); keys[k] = false; if (!isHost) netUploadInput(); }, { passive: false });
+        el.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true; }, { passive: false });
+        el.addEventListener('touchend', e => { e.preventDefault(); keys[k] = false; }, { passive: false });
       });
     }
 
     // ══════════════════════════════════
     // FÍSICA LOCAL — modelo de auto
     // ══════════════════════════════════
-    function physicsStep(dt){
-      if (isHost) {
-        // el host simula TODOS los jugadores
-        if (!firebaseState.players) return;
-        const players = firebaseState.players;
+    function physicsStep(dt) {
+      if (!local.alive) return;
+      const car = carDef(local.carId);
+      const up = keys['ArrowUp'] || keys['w'] || keys['W'];
+      const down = keys['ArrowDown'] || keys['s'] || keys['S'];
+      const left = keys['ArrowLeft'] || keys['a'] || keys['A'];
+      const right = keys['ArrowRight'] || keys['d'] || keys['D'];
 
-        Object.entries({ ...players }).forEach(([pid, p]) => {
-          if (!p.alive) return;
-          const car = carDef(p.carId);
-
-          // leer input: el host usa keys[] para sí mismo, Firebase input para el resto
-          let up, down, left, right;
-          if (pid === myId) {
-            up = keys['ArrowUp'] || keys['w'] || keys['W'];
-            down = keys['ArrowDown'] || keys['s'] || keys['S'];
-            left = keys['ArrowLeft'] || keys['a'] || keys['A'];
-            right = keys['ArrowRight'] || keys['d'] || keys['D'];
-          } else {
-            const inp = p.input || {};
-            up = inp.up; down = inp.down; left = inp.left; right = inp.right;
-          }
-
-          let { x, y, angle, vx = 0, vy = 0, hp } = p;
-
-          const speed = Math.sqrt(vx ** 2 + vy ** 2);
-          if (speed > 0.3) {
-            const steerFactor = Math.min(speed / car.topspeed, 1);
-            const turnRate = 0.065 * steerFactor * (car.topspeed / 8);
-            const goingForward = (vx * Math.sin(angle) - vy * Math.cos(angle)) >= 0;
-            const dir = goingForward ? 1 : -1;
-            if (left) angle -= turnRate * dir;
-            if (right) angle += turnRate * dir;
-          }
-
-          if (up) {
-            vx += Math.sin(angle) * car.accel * dt * 60;
-            vy -= Math.cos(angle) * car.accel * dt * 60;
-          }
-          if (down) {
-            vx -= Math.sin(angle) * car.brake * 0.6 * dt * 60;
-            vy += Math.cos(angle) * car.brake * 0.6 * dt * 60;
-          }
-
-          const spd2 = Math.sqrt(vx ** 2 + vy ** 2);
-          if (spd2 > car.topspeed) { vx = (vx / spd2) * car.topspeed; vy = (vy / spd2) * car.topspeed; }
-
-          const fwd = Math.sin(angle) * vx - Math.cos(angle) * vy;
-          const lat = Math.cos(angle) * vx + Math.sin(angle) * vy;
-          const newLat = lat * car.grip;
-          vx = Math.sin(angle) * fwd + Math.cos(angle) * newLat;
-          vy = -Math.cos(angle) * fwd + Math.sin(angle) * newLat;
-
-          if (!up && !down) { vx *= 0.96; vy *= 0.96; }
-
-          x += vx * dt * 60;
-          y += vy * dt * 60;
-
-          // escribir de vuelta al estado
-          firebaseState.players[pid] = { ...p, x, y, angle, vx, vy, hp };
-          wallCollision(firebaseState.players[pid], car);
-        });
-
-        // colisiones entre todos los pares
-        const pids = Object.keys(firebaseState.players).filter(pid => firebaseState.players[pid].alive);
-        for (let i = 0; i < pids.length; i++) {
-          for (let j = i + 1; j < pids.length; j++) {
-            const a = firebaseState.players[pids[i]], b = firebaseState.players[pids[j]];
-            if (!a.alive || !b.alive) continue;
-            resolveHostCollision(a, carDef(a.carId), b, carDef(b.carId));
-          }
-        }
-
-        // Sincronizar local con el resultado de la física del host
-        const me = firebaseState.players[myId];
-        if (me) {
-          local.x = me.x;
-          local.y = me.y;
-          local.angle = me.angle;
-          local.vx = me.vx;
-          local.vy = me.vy;
-          local.hp = me.hp;
-          local.alive = me.alive;
-        }
-
-        // ⚠️ BUG FIX: actualizar remoteTargets directo desde física (60fps).
-        // Antes iba por Firebase (30hz) y causaba lag/ghosting en los rivales.
-        Object.entries(firebaseState.players).forEach(([pid, p]) => {
-          if (pid === myId) return;
-          if (!remoteTargets[pid]) remoteTargets[pid] = { ...p };
-          else {
-            remoteTargets[pid].x = p.x;
-            remoteTargets[pid].y = p.y;
-            remoteTargets[pid].angle = p.angle;
-            remoteTargets[pid].hp = p.hp;
-            remoteTargets[pid].alive = p.alive;
-          }
-        });
-
-      } else {
-        // CLIENTE: predicción local 100% responsiva + corrección SOLO ante colisiones
-        if (!local.alive) return;
-
-        // ── Reconciliación selectiva ────────────────────────────────────────
-        // El host simula el auto del cliente con inputs retrasados (~1 RTT),
-        // así que a ~100ms de latencia y velocidad máxima ya hay ~50px de drift
-        // normal. Corregir ese drift continuo es lo que genera el efecto "barro".
-        //
-        // Solución: ignorar diferencias pequeñas (drift de red) y solo corregir
-        // cuando hay una divergencia GRANDE, que casi siempre significa que el
-        // host aplicó un impulso de colisión que el cliente no simuló localmente.
-        if (local._snap) {
-          const dx   = local._snap.x - local.x;
-          const dy   = local._snap.y - local.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist > 160) {
-            // Divergencia extrema → hard snap (colisión muy fuerte o teleport)
-            local.x  = lerp(local.x,  local._snap.x,  0.5);
-            local.y  = lerp(local.y,  local._snap.y,  0.5);
-            local.vx = lerp(local.vx, local._snap.vx, 0.6);
-            local.vy = lerp(local.vy, local._snap.vy, 0.6);
-            local.angle = lerpAngle(local.angle, local._snap.angle, 0.45);
-          } else if (dist > 70) {
-            // Colisión media → corrección gradual de posición, velocidad y ángulo.
-            // ⚠️ El ángulo hay que corregirlo junto con la velocidad: si el host
-            // aplicó un impulso que cambió vx/vy, su grip model rotará el auto
-            // hacia la nueva dirección. Sin corregir el ángulo, el cliente quedaría
-            // con la trompa apuntando para el lado equivocado.
-            local.x  = lerp(local.x,  local._snap.x,  0.15);
-            local.y  = lerp(local.y,  local._snap.y,  0.15);
-            local.vx = lerp(local.vx, local._snap.vx, 0.25);
-            local.vy = lerp(local.vy, local._snap.vy, 0.25);
-            local.angle = lerpAngle(local.angle, local._snap.angle, 0.22);
-          }
-          // ≤ 70px: drift normal de red → predicción local 100%, sin tocar nada.
-          // El control se siente perfectamente responsivo.
-        }
-        // ───────────────────────────────────────────────────────────────────
-
-        const car = carDef(local.carId);
-        const up = keys['ArrowUp'] || keys['w'] || keys['W'];
-        const down = keys['ArrowDown'] || keys['s'] || keys['S'];
-        const left = keys['ArrowLeft'] || keys['a'] || keys['A'];
-        const right = keys['ArrowRight'] || keys['d'] || keys['D'];
-
-        const speed = Math.sqrt(local.vx ** 2 + local.vy ** 2);
-        if (speed > 0.3) {
-          const steerFactor = Math.min(speed / car.topspeed, 1);
-          const turnRate = 0.065 * steerFactor * (car.topspeed / 8);
-          const goingForward = (local.vx * Math.sin(local.angle) - local.vy * Math.cos(local.angle)) >= 0;
-          const dir = goingForward ? 1 : -1;
-          if (left) local.angle -= turnRate * dir;
-          if (right) local.angle += turnRate * dir;
-        }
-        if (up) {
-          local.vx += Math.sin(local.angle) * car.accel * dt * 60;
-          local.vy -= Math.cos(local.angle) * car.accel * dt * 60;
-        }
-        if (down) {
-          local.vx -= Math.sin(local.angle) * car.brake * 0.6 * dt * 60;
-          local.vy += Math.cos(local.angle) * car.brake * 0.6 * dt * 60;
-        }
-        const spd2 = Math.sqrt(local.vx ** 2 + local.vy ** 2);
-        if (spd2 > car.topspeed) { local.vx = (local.vx / spd2) * car.topspeed; local.vy = (local.vy / spd2) * car.topspeed; }
-        const fwd = Math.sin(local.angle) * local.vx - Math.cos(local.angle) * local.vy;
-        const lat = Math.cos(local.angle) * local.vx + Math.sin(local.angle) * local.vy;
-        const newLat = lat * car.grip;
-        local.vx = Math.sin(local.angle) * fwd + Math.cos(local.angle) * newLat;
-        local.vy = -Math.cos(local.angle) * fwd + Math.sin(local.angle) * newLat;
-        if (!up && !down) { local.vx *= 0.96; local.vy *= 0.96; }
-        local.x += local.vx * dt * 60;
-        local.y += local.vy * dt * 60;
-        wallCollision(local, car);
+      const speed = Math.sqrt(local.vx ** 2 + local.vy ** 2);
+      if (speed > 0.3) {
+        const steerFactor = Math.min(speed / car.topspeed, 1);
+        const turnRate = 0.065 * steerFactor * (car.topspeed / 8);
+        const goingForward = (local.vx * Math.sin(local.angle) - local.vy * Math.cos(local.angle)) >= 0;
+        const dir = goingForward ? 1 : -1;
+        if (left) local.angle -= turnRate * dir;
+        if (right) local.angle += turnRate * dir;
       }
+      if (up) {
+        local.vx += Math.sin(local.angle) * car.accel * dt * 60;
+        local.vy -= Math.cos(local.angle) * car.accel * dt * 60;
+      }
+      if (down) {
+        local.vx -= Math.sin(local.angle) * car.brake * 0.6 * dt * 60;
+        local.vy += Math.cos(local.angle) * car.brake * 0.6 * dt * 60;
+      }
+      const spd2 = Math.sqrt(local.vx ** 2 + local.vy ** 2);
+      if (spd2 > car.topspeed) {
+        local.vx = (local.vx / spd2) * car.topspeed;
+        local.vy = (local.vy / spd2) * car.topspeed;
+      }
+      const fwd = Math.sin(local.angle) * local.vx - Math.cos(local.angle) * local.vy;
+      const lat = Math.cos(local.angle) * local.vx + Math.sin(local.angle) * local.vy;
+      const newLat = lat * car.grip;
+      local.vx = Math.sin(local.angle) * fwd + Math.cos(local.angle) * newLat;
+      local.vy = -Math.cos(local.angle) * fwd + Math.sin(local.angle) * newLat;
+      if (!up && !down) { local.vx *= 0.96; local.vy *= 0.96; }
+      local.x += local.vx * dt * 60;
+      local.y += local.vy * dt * 60;
+      wallCollision(local, car);
+
+      // Colisiones contra autos rivales
+      Object.entries(remoteTargets).forEach(([rPid, rTarget]) => {
+        if (!rTarget.alive) return;
+        const rCar = carDef(rTarget.carId);
+        resolveCarCollision(local, car, rTarget, rCar, rPid);
+      });
     }
     function wallCollision(p, car) {
       const margin = 12;
@@ -1288,99 +1152,79 @@
         }
       }
 
-      // Hay colisión — resolver
+      // Hay colisión — normal apuntando de A hacia B
       const dx = b.x - a.x, dy = b.y - a.y;
       const dot = dx * minAxis.x + dy * minAxis.y;
-      const nx = dot < 0 ? -minAxis.x : -minAxis.x * -1;
-      const ny = dot < 0 ? -minAxis.y : -minAxis.y * -1;
+      const nx = dot < 0 ? -minAxis.x : minAxis.x;
+      const ny = dot < 0 ? -minAxis.y : minAxis.y;
 
-      // Separar (mover A)
+      // Separación local para que el auto local no traspase al rival
       const massA = carA.mass, massB = carB.mass;
       const totalMass = massA + massB;
       a.x -= nx * minOverlap * (massB / totalMass);
       a.y -= ny * minOverlap * (massB / totalMass);
 
-      // Velocidad relativa para calcular daño e impulso
+      // Velocidad relativa
       const rvx = a.vx - (b.vx || 0);
       const rvy = a.vy - (b.vy || 0);
       const relSpeed = Math.abs(rvx * nx + rvy * ny);
 
-      if (relSpeed < 0.5) return; // colisión muy lenta, ignorar
+      if (relSpeed < 0.4) return; // colisión muy lenta
 
-      // Impulso físico
-      const e = 0.6; // restitución
+      const e = CFG.BOUNCE_CAR;
       const j = (1 + e) * relSpeed / (1 / massA + 1 / massB);
       const impx = nx * j;
       const impy = ny * j;
 
-      // aplicar impulso a los dos lados del choque
+      // Rebotar a nivel local
       a.vx -= impx / massA;
       a.vy -= impy / massA;
-      // empujar al remoto también (localmente, para visualización)
-      if (remoteTargets[bPid]) {
-        remoteTargets[bPid].vx = (remoteTargets[bPid].vx || 0) + impx / massB;
-        remoteTargets[bPid].vy = (remoteTargets[bPid].vy || 0) + impy / massB;
-      }
 
-      // Daño al otro (subir a Firebase solo si el daño es significativo)
-      const dmg = Math.min(Math.round(relSpeed * CFG.DMG_FACTOR), CFG.DMG_MAX);
-      if (dmg >= CFG.DMG_MIN) {
-        const curHp = typeof remoteTargets[bPid]?.hp === 'number' ? remoteTargets[bPid].hp : MAX_HP;
-        const newHp = Math.max(0, curHp - dmg);
-        // actualizar local inmediatamente para que no aplique daño doble
-        remoteTargets[bPid].hp = newHp;
-        remoteTargets[bPid].alive = newHp > 0;
-        update(ref(db), {
-          [`rooms/${roomCode}/players/${bPid}/hp`]: newHp,
-          [`rooms/${roomCode}/players/${bPid}/alive`]: newHp > 0,
-        });
-      }
-    }
+      // ── Comprobar si el auto local (A) choca usando la trompa o la cola ──
+      // Vector delantero de A: (sin(angle), -cos(angle))
+      const fwdAx = Math.sin(a.angle), fwdAy = -Math.cos(a.angle);
+      const cDist = Math.hypot(dx, dy) || 1;
+      const dirToBx = dx / cDist, dirToBy = dy / cDist;
+      const dotA = fwdAx * dirToBx + fwdAy * dirToBy;
+      // dotA > 0.45 = trompa de A, dotA < -0.45 = cola de A
+      const hitWithFrontOrBack = Math.abs(dotA) > 0.45;
 
-    function resolveHostCollision(a, carA, b, carB) {
-      const cornersA = getCorners(a, carA);
-      const cornersB = getCorners(b, carB);
-      const axes = [
-        { x: Math.cos(a.angle), y: Math.sin(a.angle) },
-        { x: -Math.sin(a.angle), y: Math.cos(a.angle) },
-        { x: Math.cos(b.angle), y: Math.sin(b.angle) },
-        { x: -Math.sin(b.angle), y: Math.cos(b.angle) },
-      ];
-      let minOverlap = Infinity, minAxis = null;
-      for (const ax of axes) {
-        const pA = projectCorners(cornersA, ax);
-        const pB = projectCorners(cornersB, ax);
-        const overlap = Math.min(pA.max, pB.max) - Math.max(pA.min, pB.min);
-        if (overlap <= 0) return;
-        if (overlap < minOverlap) { minOverlap = overlap; minAxis = ax; }
-      }
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const dot = dx * minAxis.x + dy * minAxis.y;
-      const nx = dot < 0 ? -minAxis.x : minAxis.x;
-      const ny = dot < 0 ? -minAxis.y : minAxis.y;
-      const totalMass = carA.mass + carB.mass;
-      a.x -= nx * minOverlap * (carB.mass / totalMass);
-      a.y -= ny * minOverlap * (carB.mass / totalMass);
-      b.x += nx * minOverlap * (carA.mass / totalMass);
-      b.y += ny * minOverlap * (carA.mass / totalMass);
+      // Comprobar si el auto local se estaba moviendo hacia el rival (chocador activo)
+      const movingTowardsB = (a.vx * dirToBx + a.vy * dirToBy) > 0.3;
 
-      const rvx = a.vx - b.vx, rvy = a.vy - b.vy;
-      const relSpeed = Math.abs(rvx * nx + rvy * ny);
-      if (relSpeed < 0.5) return;
+      if (hitWithFrontOrBack && movingTowardsB) {
+        const now = performance.now();
+        // Cooldown de 250ms por cada rival para no spamear daño en múltiples frames de contacto
+        if (!recentHits[bPid] || (now - recentHits[bPid] > 250)) {
+          recentHits[bPid] = now;
 
-      const e = CFG.BOUNCE_CAR;
-      const j = (1 + e) * relSpeed / (1 / carA.mass + 1 / carB.mass);
-      a.vx -= nx * (j / carA.mass);
-      a.vy -= ny * (j / carA.mass);
-      b.vx += nx * (j / carB.mass);
-      b.vy += ny * (j / carB.mass);
+          // Daño y empuje según la velocidad del auto que choca
+          const mySpeed = Math.hypot(a.vx, a.vy);
+          const dmg = Math.min(Math.max(Math.round(mySpeed * CFG.DMG_FACTOR), CFG.DMG_MIN), CFG.DMG_MAX);
 
-      const dmg = Math.min(Math.round(relSpeed * CFG.DMG_FACTOR), CFG.DMG_MAX);
-      if (dmg >= CFG.DMG_MIN) {
-        a.hp = Math.max(0, (a.hp || MAX_HP) - dmg);
-        b.hp = Math.max(0, (b.hp || MAX_HP) - dmg);
-        a.alive = a.hp > 0;
-        b.alive = b.hp > 0;
+          // Empujar al rival en la dirección del choque (nx, ny apuntan hacia B)
+          const pushForce = Math.max(j / massB, mySpeed * 0.85);
+          const pushVx = nx * pushForce;
+          const pushVy = ny * pushForce;
+
+          // Enviar impacto a Firebase para el auto chocado
+          update(ref(db), {
+            [`rooms/${roomCode}/players/${bPid}/impact`]: {
+              vx: pushVx,
+              vy: pushVy,
+              dmg: dmg,
+              ts: Date.now() + Math.random() // clave única temporal
+            }
+          });
+
+          // Empujar visualmente la interpolación de inmediato
+          if (remoteTargets[bPid]) {
+            remoteTargets[bPid].vx = (remoteTargets[bPid].vx || 0) + pushVx;
+            remoteTargets[bPid].vy = (remoteTargets[bPid].vy || 0) + pushVy;
+            remoteTargets[bPid].hp = Math.max(0, (remoteTargets[bPid].hp ?? MAX_HP) - dmg);
+            remoteTargets[bPid].alive = remoteTargets[bPid].hp > 0;
+          }
+        }
       }
     }
 
@@ -1393,9 +1237,14 @@
       Object.entries(remoteTargets).forEach(([pid, target]) => {
         if (!renderedRemotes[pid]) renderedRemotes[pid] = { ...target };
         const r = renderedRemotes[pid];
+
+        // Extrapolación / dead reckoning con velocidad para compensar jitter de red
+        const targetX = target.x + (target.vx || 0) * 0.5;
+        const targetY = target.y + (target.vy || 0) * 0.5;
+
         const t = Math.min(INTERP * dt * 60, 1);
-        r.x = lerp(r.x, target.x, t);
-        r.y = lerp(r.y, target.y, t);
+        r.x = lerp(r.x, targetX, t);
+        r.y = lerp(r.y, targetY, t);
         r.angle = lerpAngle(r.angle, target.angle, t);
         r.hp = target.hp;
         r.alive = target.alive;
@@ -1410,43 +1259,20 @@
     }
 
     // ══════════════════════════════════
-    // SUBIR INPUT A FIREBASE (clientes)
-    // Se llama inmediatamente en keydown/keyup Y como backup en el timer
-    // ══════════════════════════════════
-    function netUploadInput() {
-      if (!roomCode || isHost) return;
-      update(ref(db), {
-        [`rooms/${roomCode}/players/${myId}/input`]: {
-          up:    !!(keys['ArrowUp']    || keys['w'] || keys['W']),
-          down:  !!(keys['ArrowDown']  || keys['s'] || keys['S']),
-          left:  !!(keys['ArrowLeft']  || keys['a'] || keys['A']),
-          right: !!(keys['ArrowRight'] || keys['d'] || keys['D']),
-        }
-      });
-    }
-
-    // ══════════════════════════════════
-    // SUBIR POSICIÓN A FIREBASE (20hz)
+    // SUBIR POSICIÓN A FIREBASE (30hz)
+    // Cada jugador sube autoritativamente el estado de su propio auto
     // ══════════════════════════════════
     function netUpload() {
-      if (isHost) {
-        // el host sube el estado completo de todos los jugadores
-        if (!firebaseState.players) return;
-        const updates = {};
-        Object.entries(firebaseState.players).forEach(([pid, p]) => {
-          updates[`rooms/${roomCode}/players/${pid}/x`] = p.x;
-          updates[`rooms/${roomCode}/players/${pid}/y`] = p.y;
-          updates[`rooms/${roomCode}/players/${pid}/angle`] = p.angle;
-          updates[`rooms/${roomCode}/players/${pid}/vx`] = p.vx;
-          updates[`rooms/${roomCode}/players/${pid}/vy`] = p.vy;
-          updates[`rooms/${roomCode}/players/${pid}/hp`] = p.hp;
-          updates[`rooms/${roomCode}/players/${pid}/alive`] = p.alive;
-        });
-        update(ref(db), updates);
-      } else {
-        // backup periódico del input (el upload real va en keydown/keyup)
-        netUploadInput();
-      }
+      if (!roomCode || !myId || !local || local.x === undefined) return;
+      update(ref(db), {
+        [`rooms/${roomCode}/players/${myId}/x`]: local.x,
+        [`rooms/${roomCode}/players/${myId}/y`]: local.y,
+        [`rooms/${roomCode}/players/${myId}/angle`]: local.angle,
+        [`rooms/${roomCode}/players/${myId}/vx`]: local.vx,
+        [`rooms/${roomCode}/players/${myId}/vy`]: local.vy,
+        [`rooms/${roomCode}/players/${myId}/hp`]: local.hp,
+        [`rooms/${roomCode}/players/${myId}/alive`]: local.alive,
+      });
     }
 
     // ══════════════════════════════════
@@ -1462,13 +1288,30 @@
       physicsStep(dt);
       interpolateRemotes(dt);
 
-      // Red: subir solo a 20hz
+      // Red: subir solo a 30hz
       if (ts - lastNetSend >= 1000 / NET_HZ) {
         netUpload();
         lastNetSend = ts;
       }
 
       renderFrame();
+    }
+
+    // Tick en segundo plano para que el auto siga actualizando su estado si se minimiza o cambia de pestaña
+    function runBackgroundHostTick() {
+      if (!rafId || !local.alive) return;
+      const now = performance.now();
+      const dt = Math.min((now - lastHostTick) / 1000, 0.1);
+      lastHostTick = now;
+
+      // Si la pestaña está oculta o rAF no corrió en >35ms, este timer ejecuta la física y red
+      if (document.hidden || dt > 0.035) {
+        physicsStep(dt);
+        if (now - lastNetSend >= 1000 / NET_HZ) {
+          netUpload();
+          lastNetSend = now;
+        }
+      }
     }
 
     // ══════════════════════════════════
@@ -1598,7 +1441,7 @@
       if (total < 2) return;
       const alive = Object.values(players).filter(p => p.alive);
       if (alive.length <= 1) {
-        if (isHost) update(roomRef, { status: 'ended', winner: alive[0]?.name || '?' });
+        update(roomRef, { status: 'ended', winner: alive[0]?.name || '?' });
       }
     }
 
@@ -1606,6 +1449,7 @@
       if (overlayShown) return;
       overlayShown = true;
       if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      if (hostTickInterval) { clearInterval(hostTickInterval); hostTickInterval = null; }
 
       const myAlive = firebaseState.players?.[myId]?.alive;
       const winner = room.winner || '?';
@@ -1621,6 +1465,7 @@
       if (stateListener && roomRef) off(roomRef, 'value', stateListener);
       if (stateRef) await remove(stateRef).catch(() => { });
       if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      if (hostTickInterval) { clearInterval(hostTickInterval); hostTickInterval = null; }
       if (window._kd) document.removeEventListener('keydown', window._kd);
       if (window._ku) document.removeEventListener('keyup', window._ku);
       roomCode = null; roomRef = null; stateRef = null; stateListener = null;
@@ -1634,6 +1479,7 @@
       document.getElementById('overlay').classList.remove('show');
       overlayShown = false; lastTs = null;
       if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      if (hostTickInterval) { clearInterval(hostTickInterval); hostTickInterval = null; }
       local = {}; remoteTargets = {}; renderedRemotes = {};
 
       if (isHost) {
