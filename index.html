@@ -944,6 +944,7 @@
         updates[`rooms/${roomCode}/players/${pid}/vx`] = 0;
         updates[`rooms/${roomCode}/players/${pid}/vy`] = 0;
         updates[`rooms/${roomCode}/players/${pid}/alive`] = true;
+        updates[`rooms/${roomCode}/players/${pid}/impact`] = null;
       });
       await update(ref(db), updates);
     }
@@ -978,8 +979,10 @@
         x: me.x, y: me.y, angle: me.angle,
         vx: 0, vy: 0,
         carId: me.carId, color: me.color, name: me.name,
-        hp: me.hp, alive: true
+        hp: MAX_HP, alive: true,
+        _lastProcessedImpact: me.impact?.ts || 0
       };
+      recentHits = {};
 
       // Inicializar targets remotos
       remoteTargets = {};
@@ -1073,11 +1076,20 @@
       local.y += local.vy * dt * 60;
       wallCollision(local, car);
 
-      // Colisiones contra autos rivales
+      // Colisiones contra autos rivales (usando posición visual renderedRemotes si existe para coincidir exactamente con la pantalla)
       Object.entries(remoteTargets).forEach(([rPid, rTarget]) => {
         if (!rTarget.alive) return;
         const rCar = carDef(rTarget.carId);
-        resolveCarCollision(local, car, rTarget, rCar, rPid);
+        const visualPos = renderedRemotes[rPid] || rTarget;
+        const bProxy = {
+          x: visualPos.x,
+          y: visualPos.y,
+          angle: visualPos.angle,
+          vx: rTarget.vx,
+          vy: rTarget.vy,
+          alive: rTarget.alive
+        };
+        resolveCarCollision(local, car, bProxy, rCar, rPid);
       });
     }
     function wallCollision(p, car) {
@@ -1186,21 +1198,22 @@
       const cDist = Math.hypot(dx, dy) || 1;
       const dirToBx = dx / cDist, dirToBy = dy / cDist;
       const dotA = fwdAx * dirToBx + fwdAy * dirToBy;
-      // dotA > 0.45 = trompa de A, dotA < -0.45 = cola de A
-      const hitWithFrontOrBack = Math.abs(dotA) > 0.45;
+      // dotA > 0.65 = trompa de A, dotA < -0.65 = cola de A (evita toques laterales o roces)
+      const hitWithFrontOrBack = Math.abs(dotA) > 0.65;
 
-      // Comprobar si el auto local se estaba moviendo hacia el rival (chocador activo)
-      const movingTowardsB = (a.vx * dirToBx + a.vy * dirToBy) > 0.3;
+      // Comprobar si el auto local realmente impacta con velocidad hacia el rival
+      const approachSpeed = a.vx * dirToBx + a.vy * dirToBy;
+      const mySpeed = Math.hypot(a.vx, a.vy);
+      const isSolidImpact = approachSpeed > 1.2 && mySpeed > 1.5;
 
-      if (hitWithFrontOrBack && movingTowardsB) {
+      if (hitWithFrontOrBack && isSolidImpact) {
         const now = performance.now();
-        // Cooldown de 250ms por cada rival para no spamear daño en múltiples frames de contacto
-        if (!recentHits[bPid] || (now - recentHits[bPid] > 250)) {
+        // Cooldown de 400ms por cada rival para no spamear daño en múltiples frames de contacto
+        if (!recentHits[bPid] || (now - recentHits[bPid] > 400)) {
           recentHits[bPid] = now;
 
-          // Daño y empuje según la velocidad del auto que choca
-          const mySpeed = Math.hypot(a.vx, a.vy);
-          const dmg = Math.min(Math.max(Math.round(mySpeed * CFG.DMG_FACTOR), CFG.DMG_MIN), CFG.DMG_MAX);
+          // Daño y empuje según la velocidad efectiva del impacto
+          const dmg = Math.min(Math.max(Math.round(approachSpeed * CFG.DMG_FACTOR), CFG.DMG_MIN), CFG.DMG_MAX);
 
           // Empujar al rival en la dirección del choque (nx, ny apuntan hacia B)
           const pushForce = Math.max(j / massB, mySpeed * 0.85);
@@ -1490,6 +1503,7 @@
         pids.forEach(pid => {
           updates[`rooms/${roomCode}/players/${pid}/hp`] = MAX_HP;
           updates[`rooms/${roomCode}/players/${pid}/alive`] = true;
+          updates[`rooms/${roomCode}/players/${pid}/impact`] = null;
         });
         await update(ref(db), updates);
       }
